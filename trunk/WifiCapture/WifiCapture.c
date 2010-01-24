@@ -33,47 +33,6 @@
 #endif // ALLOC_PRAGMA
 
 
-//
-//  Globals:
-//
-NDISPROT_GLOBALS         Globals = {0};
-
-NTSTATUS WIFICAPTURE_DispatchCreateClose(
-    IN PDEVICE_OBJECT		DeviceObject,
-    IN PIRP					Irp
-    )
-{
-    NTSTATUS status = STATUS_SUCCESS;
-    Irp->IoStatus.Status = status;
-    Irp->IoStatus.Information = 0;
-    IoCompleteRequest(Irp, IO_NO_INCREMENT);
-    return status;
-}
-
-NTSTATUS WIFICAPTURE_DispatchDeviceControl(
-    IN PDEVICE_OBJECT		DeviceObject,
-    IN PIRP					Irp
-    )
-{
-    NTSTATUS status = STATUS_SUCCESS;
-    PIO_STACK_LOCATION irpSp = IoGetCurrentIrpStackLocation(Irp);
-
-    switch(irpSp->Parameters.DeviceIoControl.IoControlCode)
-    {
-    case IOCTL_WIFICAPTURE_OPERATION:
-        // status = SomeHandlerFunction(irpSp);
-        break;
-    default:
-        Irp->IoStatus.Status = STATUS_INVALID_DEVICE_REQUEST;
-        Irp->IoStatus.Information = 0;
-        break;
-    }
-
-    status = Irp->IoStatus.Status;
-    IoCompleteRequest(Irp, IO_NO_INCREMENT);
-    return status;
-}
-
 VOID WIFICAPTURE_DriverUnload(
     IN PDRIVER_OBJECT		DriverObject
     )
@@ -110,12 +69,9 @@ VOID WIFICAPTURE_DriverUnload(
 	DEBUGP(DL_LOUD, ("Unload Exit\n"));
 }
 
-#ifdef __cplusplus
-extern "C" {
-#endif
 NTSTATUS DriverEntry(
-    IN OUT PDRIVER_OBJECT   DriverObject,
-    IN PUNICODE_STRING      RegistryPath
+    IN OUT PDRIVER_OBJECT   pDriverObject,
+    IN PUNICODE_STRING      pRegistryPath
     )
 {
 	NDIS_PROTOCOL_DRIVER_CHARACTERISTICS   protocolChar;
@@ -911,8 +867,3 @@ ndisprotDbgDerefOpen(
 }
 
 #endif // DBG
-
-
-#ifdef __cplusplus
-}; // extern "C"
-#endif
