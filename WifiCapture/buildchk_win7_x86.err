@@ -1,0 +1,8 @@
+0>CreateFileW(z:\develope\wepp~617\wifi~cfb\objchk_win7_x86\i386\_objects.mac) failed GetLastError()=0x00000003
+
+0>z:\develope\wepp~617\wifi~cfb\objchk_win7_x86\i386\_objects.mac: create file failed
+
+1>errors in directory z:\develope\wepp~617\wifi~cfb
+1>c:\winddk\760016~1.0\bin\makefile.new(453) : error U1052: file 'z:\develope\wepp~617\wifi~cfb\objchk_win7_x86\i386\_objects.mac' not found
+1>nmake.exe /nologo BUILDMSG=Stop. -i BUILD_PASS=PASS2 LINKONLY=1 NOPASS0=1 MAKEDIR_RELATIVE_TO_BASEDIR= failed - rc = 2
+
