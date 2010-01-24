@@ -1,0 +1,76 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 10.00
+# Visual Studio 2008
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "WepPinhole", "WepPinhole\WepPinhole.vcproj", "{DCE55D55-62F8-46F9-A5D6-7416B08DD77F}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "WifiCapture.W7", "WifiCapture\WifiCapture.W7.vcproj", "{2B887F34-DC30-4EE7-8374-764F4AEC0EDC}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		W7 checked (PREfast)|Win32 = W7 checked (PREfast)|Win32
+		W7 checked|Win32 = W7 checked|Win32
+		W7 free|Win32 = W7 free|Win32
+		W7LH checked (PREfast)|Win32 = W7LH checked (PREfast)|Win32
+		W7LH checked|Win32 = W7LH checked|Win32
+		W7LH free|Win32 = W7LH free|Win32
+		W7NET checked (PREfast)|Win32 = W7NET checked (PREfast)|Win32
+		W7NET checked|Win32 = W7NET checked|Win32
+		W7NET free|Win32 = W7NET free|Win32
+		W7XP checked (PREfast)|Win32 = W7XP checked (PREfast)|Win32
+		W7XP checked|Win32 = W7XP checked|Win32
+		W7XP free|Win32 = W7XP free|Win32
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{DCE55D55-62F8-46F9-A5D6-7416B08DD77F}.W7 checked (PREfast)|Win32.ActiveCfg = Release|Win32
+		{DCE55D55-62F8-46F9-A5D6-7416B08DD77F}.W7 checked|Win32.ActiveCfg = Release|Win32
+		{DCE55D55-62F8-46F9-A5D6-7416B08DD77F}.W7 free|Win32.ActiveCfg = Release|Win32
+		{DCE55D55-62F8-46F9-A5D6-7416B08DD77F}.W7LH checked (PREfast)|Win32.ActiveCfg = Release|Win32
+		{DCE55D55-62F8-46F9-A5D6-7416B08DD77F}.W7LH checked|Win32.ActiveCfg = Release|Win32
+		{DCE55D55-62F8-46F9-A5D6-7416B08DD77F}.W7LH free|Win32.ActiveCfg = Release|Win32
+		{DCE55D55-62F8-46F9-A5D6-7416B08DD77F}.W7NET checked (PREfast)|Win32.ActiveCfg = Release|Win32
+		{DCE55D55-62F8-46F9-A5D6-7416B08DD77F}.W7NET checked|Win32.ActiveCfg = Release|Win32
+		{DCE55D55-62F8-46F9-A5D6-7416B08DD77F}.W7NET free|Win32.ActiveCfg = Release|Win32
+		{DCE55D55-62F8-46F9-A5D6-7416B08DD77F}.W7XP checked (PREfast)|Win32.ActiveCfg = Release|Win32
+		{DCE55D55-62F8-46F9-A5D6-7416B08DD77F}.W7XP checked|Win32.ActiveCfg = Release|Win32
+		{DCE55D55-62F8-46F9-A5D6-7416B08DD77F}.W7XP free|Win32.ActiveCfg = Release|Win32
+		{2B887F34-DC30-4EE7-8374-764F4AEC0EDC}.W7 checked (PREfast)|Win32.ActiveCfg = W7 checked (PREfast)|Win32
+		{2B887F34-DC30-4EE7-8374-764F4AEC0EDC}.W7 checked (PREfast)|Win32.Build.0 = W7 checked (PREfast)|Win32
+		{2B887F34-DC30-4EE7-8374-764F4AEC0EDC}.W7 checked (PREfast)|Win32.Deploy.0 = W7 checked (PREfast)|Win32
+		{2B887F34-DC30-4EE7-8374-764F4AEC0EDC}.W7 checked|Win32.ActiveCfg = W7 checked|Win32
+		{2B887F34-DC30-4EE7-8374-764F4AEC0EDC}.W7 checked|Win32.Build.0 = W7 checked|Win32
+		{2B887F34-DC30-4EE7-8374-764F4AEC0EDC}.W7 checked|Win32.Deploy.0 = W7 checked|Win32
+		{2B887F34-DC30-4EE7-8374-764F4AEC0EDC}.W7 free|Win32.ActiveCfg = W7 free|Win32
+		{2B887F34-DC30-4EE7-8374-764F4AEC0EDC}.W7 free|Win32.Build.0 = W7 free|Win32
+		{2B887F34-DC30-4EE7-8374-764F4AEC0EDC}.W7 free|Win32.Deploy.0 = W7 free|Win32
+		{2B887F34-DC30-4EE7-8374-764F4AEC0EDC}.W7LH checked (PREfast)|Win32.ActiveCfg = W7LH checked (PREfast)|Win32
+		{2B887F34-DC30-4EE7-8374-764F4AEC0EDC}.W7LH checked (PREfast)|Win32.Build.0 = W7LH checked (PREfast)|Win32
+		{2B887F34-DC30-4EE7-8374-764F4AEC0EDC}.W7LH checked (PREfast)|Win32.Deploy.0 = W7LH checked (PREfast)|Win32
+		{2B887F34-DC30-4EE7-8374-764F4AEC0EDC}.W7LH checked|Win32.ActiveCfg = W7LH checked|Win32
+		{2B887F34-DC30-4EE7-8374-764F4AEC0EDC}.W7LH checked|Win32.Build.0 = W7LH checked|Win32
+		{2B887F34-DC30-4EE7-8374-764F4AEC0EDC}.W7LH checked|Win32.Deploy.0 = W7LH checked|Win32
+		{2B887F34-DC30-4EE7-8374-764F4AEC0EDC}.W7LH free|Win32.ActiveCfg = W7LH free|Win32
+		{2B887F34-DC30-4EE7-8374-764F4AEC0EDC}.W7LH free|Win32.Build.0 = W7LH free|Win32
+		{2B887F34-DC30-4EE7-8374-764F4AEC0EDC}.W7LH free|Win32.Deploy.0 = W7LH free|Win32
+		{2B887F34-DC30-4EE7-8374-764F4AEC0EDC}.W7NET checked (PREfast)|Win32.ActiveCfg = W7NET checked (PREfast)|Win32
+		{2B887F34-DC30-4EE7-8374-764F4AEC0EDC}.W7NET checked (PREfast)|Win32.Build.0 = W7NET checked (PREfast)|Win32
+		{2B887F34-DC30-4EE7-8374-764F4AEC0EDC}.W7NET checked (PREfast)|Win32.Deploy.0 = W7NET checked (PREfast)|Win32
+		{2B887F34-DC30-4EE7-8374-764F4AEC0EDC}.W7NET checked|Win32.ActiveCfg = W7NET checked|Win32
+		{2B887F34-DC30-4EE7-8374-764F4AEC0EDC}.W7NET checked|Win32.Build.0 = W7NET checked|Win32
+		{2B887F34-DC30-4EE7-8374-764F4AEC0EDC}.W7NET checked|Win32.Deploy.0 = W7NET checked|Win32
+		{2B887F34-DC30-4EE7-8374-764F4AEC0EDC}.W7NET free|Win32.ActiveCfg = W7NET free|Win32
+		{2B887F34-DC30-4EE7-8374-764F4AEC0EDC}.W7NET free|Win32.Build.0 = W7NET free|Win32
+		{2B887F34-DC30-4EE7-8374-764F4AEC0EDC}.W7NET free|Win32.Deploy.0 = W7NET free|Win32
+		{2B887F34-DC30-4EE7-8374-764F4AEC0EDC}.W7XP checked (PREfast)|Win32.ActiveCfg = W7XP checked (PREfast)|Win32
+		{2B887F34-DC30-4EE7-8374-764F4AEC0EDC}.W7XP checked (PREfast)|Win32.Build.0 = W7XP checked (PREfast)|Win32
+		{2B887F34-DC30-4EE7-8374-764F4AEC0EDC}.W7XP checked (PREfast)|Win32.Deploy.0 = W7XP checked (PREfast)|Win32
+		{2B887F34-DC30-4EE7-8374-764F4AEC0EDC}.W7XP checked|Win32.ActiveCfg = W7XP checked|Win32
+		{2B887F34-DC30-4EE7-8374-764F4AEC0EDC}.W7XP checked|Win32.Build.0 = W7XP checked|Win32
+		{2B887F34-DC30-4EE7-8374-764F4AEC0EDC}.W7XP checked|Win32.Deploy.0 = W7XP checked|Win32
+		{2B887F34-DC30-4EE7-8374-764F4AEC0EDC}.W7XP free|Win32.ActiveCfg = W7XP free|Win32
+		{2B887F34-DC30-4EE7-8374-764F4AEC0EDC}.W7XP free|Win32.Build.0 = W7XP free|Win32
+		{2B887F34-DC30-4EE7-8374-764F4AEC0EDC}.W7XP free|Win32.Deploy.0 = W7XP free|Win32
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+EndGlobal
