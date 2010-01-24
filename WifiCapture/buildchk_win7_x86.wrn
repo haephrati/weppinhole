@@ -1,2 +1,0 @@
-1>warnings in directory c:\develo~1\weppin~1\wifica~1
-1>c:\developed\weppinhole\wificapture\wificapture.h(49) : warning C4245: 'initializing' : conversion from 'int' to 'const ULONG', signed/unsigned mismatch
