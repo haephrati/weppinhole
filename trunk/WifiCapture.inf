@@ -1,0 +1,89 @@
+;-------------------------------------------------------------------------
+; NDISPROT.INF -- Sample NDIS Protocol Driver
+;
+; Copyright (c) 2003, Microsoft Corporation
+;-------------------------------------------------------------------------
+[version]
+Signature   = "$Windows NT$"
+Class       = NetTrans
+ClassGUID   = {4d36e975-e325-11ce-bfc1-08002be10318}
+Provider    = %Msft%
+DriverVer   =01/24/2010,1.0.7.0
+
+[Manufacturer]
+%Msft%=MSFT,NTx86,NTia64,NTamd64
+
+[MSFT.NTx86]
+%WIFICAPTURE_Desc%=Install, MS_NDISPROT
+
+[MSFT.NTia64]
+%NDISPROT_Desc%=Install, MS_NDISPROT
+
+[MSFT.NTamd64]
+%NDISPROT_Desc%=Install, MS_NDISPROT
+
+;-------------------------------------------------------------------------
+; Installation Section
+;-------------------------------------------------------------------------
+[Install]
+AddReg=Inst_Ndi
+Characteristics=0x0 ; 
+CopyFiles=CpyFiles_Sys
+
+;-------------------------------------------------------------------------
+; Ndi installation support
+;-------------------------------------------------------------------------
+[Inst_Ndi]
+HKR,Ndi,Service,,"WifiCapture"
+HKR,Ndi,HelpText,,%WIFICAPTURE_HelpText%
+HKR,Ndi\Interfaces, UpperRange,, noupper
+HKR,"Ndi\Interfaces","LowerRange",,"ndis5,ndis4,ndis5_prot"
+
+;-------------------------------------------------------------------------
+; Service installation support
+;-------------------------------------------------------------------------
+[Install.Services]
+AddService=WifiCapture,,WIFICAPTURE_Service_Inst
+
+[WIFICAPTURE_Service_Inst]
+DisplayName     = %WIFICAPTURE_Desc%
+ServiceType     = 1 ;SERVICE_KERNEL_DRIVER
+StartType       = 3 ;SERVICE_DEMAND_START
+ErrorControl    = 1 ;SERVICE_ERROR_NORMAL
+ServiceBinary   = %12%\WifiCapture.sys
+LoadOrderGroup  = NDIS
+Description     = %WIFICAPTURE_Desc%
+
+[Install.Remove.Services]
+DelService=WifiCapture,0x200
+
+;-------------------------------------------------------------------------
+; Declare Destination Directories for file copy/deletion
+;-------------------------------------------------------------------------
+[SourceDisksNames]
+1=%DiskDescription%,"",,
+
+[SourceDisksFiles]
+WifiCapture.sys=1
+
+[DestinationDirs]
+CpyFiles_Sys    = 12    ; DIRID_DRIVERS
+
+
+;-------------------------------------------------------------------------
+; Files to Copy/Delete - Referenced by Install and Remove sections above
+;-------------------------------------------------------------------------
+[CpyFiles_Sys]
+WifiCapture.sys,,,2
+
+[Strings]
+Msft = "Microsoft"
+DiskDescription = "WifiCapture Driver Disk"
+WIFICAPTURE_Desc = "Wifi Capture Protocol Driver"
+WIFICAPTURE_HelpText = "Wifi Capture Driver to support user-mode I/O on NDIS devices"
+
+
+
+
+
+
