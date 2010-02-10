@@ -26,6 +26,8 @@ Revision History:
 
 NDIS_OID    ndisprotSupportedSetOids[] =
 {
+	OID_GEN_CURRENT_PACKET_FILTER,
+
 	OID_802_11_INFRASTRUCTURE_MODE,
 	OID_802_11_AUTHENTICATION_MODE,
 	OID_802_11_RELOAD_DEFAULTS,
@@ -44,6 +46,11 @@ NDIS_OID    ndisprotSupportedSetOids[] =
 	OID_802_11_SUPPORTED_RATES,
 	OID_802_11_CONFIGURATION,
 	OID_802_3_MULTICAST_LIST,
+
+	OID_DOT11_CURRENT_OPERATION_MODE,
+	OID_DOT11_CURRENT_CHANNEL,
+	OID_DOT11_CURRENT_FREQUENCY,
+	OID_DOT11_SCAN_REQUEST,
 };
 
 NDIS_STATUS
@@ -1123,6 +1130,8 @@ Return Value:
             break;
     }
 
+	DEBUGP(DL_WARN, ("SetOid: do request %08X\n", Oid));
+
     pNdisRequest->RequestId = NPROT_GET_NEXT_CANCEL_ID();
     Status = NdisOidRequest(pOpenContext->BindingHandle,
                             pNdisRequest);
@@ -1149,7 +1158,12 @@ Return Value:
         {
             *pBytesProcessed = InformationBufferLength;
         }
+		DEBUGP(DL_WARN, ("SetOid: do request success\n"));
     }
+	else
+	{
+		DEBUGP(DL_WARN, ("SetOid: do request failed status = %08X\n", Status));
+	}
 
     return (Status);
 }
@@ -1778,6 +1792,8 @@ Return Value:
     ULONG                   BytesWritten;
 
     Oid = 0;
+
+	DEBUGP(DL_WARN, ("SetOid: Open %p/%x\n", pOpenContext, pOpenContext->Flags) );
 
     do
     {

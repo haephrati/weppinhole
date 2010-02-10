@@ -63,8 +63,8 @@
 			>
 			<Tool
 				Name="VCNMakeTool"
-				BuildCommandLine="$(DDKBUILD_PATH) -W7 checked . -cZ -prefast"
-				ReBuildCommandLine="$(DDKBUILD_PATH) -W7 checked . -cZ -prefast"
+				BuildCommandLine="$(DDKBUILD_PATH) -W7 checked . -ceZ -prefast"
+				ReBuildCommandLine="$(DDKBUILD_PATH) -W7 checked . -ceZ -prefast"
 				CleanCommandLine=""
 				Output=""
 				PreprocessorDefinitions="DBG=1;WINVER=0x0601;NTDDI_VERSION=0x06010000"

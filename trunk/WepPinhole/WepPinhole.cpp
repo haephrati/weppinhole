@@ -10,6 +10,8 @@
 #include <rpcsal.h>
 #include <Rpc.h>
 
+#include "ndisPort.h"
+
 #define BUFSIZE 0x3E8000
 #define print printf
 struct cstate
@@ -205,7 +207,7 @@ GetInterfaceStateString( __in WLAN_INTERFACE_STATE wlanInterfaceState )
 	return strRetCode;
 }
 
-int _tmain(int argc, _TCHAR* argv[])
+int TestWlanApi(int argc, _TCHAR* argv[])
 {
 	// init_lib( &cs );
 	// return 0;
@@ -263,7 +265,9 @@ int _tmain(int argc, _TCHAR* argv[])
 		return -1;
 	}
 
-	ControlIoDevice( 
+	BOOL bRet = ReadFile( hClient, szBuffer, sizeof(szBuffer), &dwRead, NULL );
+
+	_getch();
 	ulOperatorCode = DOT11_OPERATION_MODE_EXTENSIBLE_STATION;
 	if( ERROR_SUCCESS != WlanSetInterface( 
 		hClient, 
@@ -281,3 +285,169 @@ int _tmain(int argc, _TCHAR* argv[])
 	return 0;
 }
 
+TCHAR            NdisProtDevice[] = _T("\\\\.\\\\WifiCapture");
+TCHAR *          pNdisProtDevice = &NdisProtDevice[0];
+
+BOOL InitializeDevice( HANDLE hDeviceHandle, CONST WCHAR* pszDeviceName, UINT nNameLength )
+{
+	DWORD BytesReturned = 0;
+	BOOL bRet = DeviceIoControl(
+		hDeviceHandle,
+		IOCTL_NDISPROT_OPEN_DEVICE,
+		(LPVOID)pszDeviceName,
+		nNameLength,
+		NULL,
+		0,
+		&BytesReturned,
+		NULL);
+
+	if( bRet == FALSE )
+	{
+		puts( "Open Device failed." );
+		return FALSE;
+	}
+
+	//{
+	//	UCHAR SetBuffer[sizeof(NDISPROT_SET_OID)+sizeof(ULONG)];
+
+	//	PNDISPROT_SET_OID pSetOid = (PNDISPROT_SET_OID)&SetBuffer[0];
+	//	pSetOid->Oid = OID_GEN_CURRENT_PACKET_FILTER;
+	//	pSetOid->PortNumber = 0;
+	//	ULONG* pFilter = (ULONG*)pSetOid->Data;
+	//	*pFilter = 
+	//		NDIS_PACKET_TYPE_DIRECTED |
+	//		NDIS_PACKET_TYPE_MULTICAST |
+	//		NDIS_PACKET_TYPE_BROADCAST |
+	//		NDIS_PACKET_TYPE_PROMISCUOUS |
+	//		NDIS_PACKET_TYPE_802_11_RAW_DATA |
+	//		//NDIS_PACKET_TYPE_802_11_PROMISCUOUS_MGMT |
+	//		//NDIS_PACKET_TYPE_802_11_PROMISCUOUS_CTRL |
+	//		//NDIS_PACKET_TYPE_802_11_BROADCAST_MGMT |
+	//		//NDIS_PACKET_TYPE_802_11_BROADCAST_CTRL |
+	//		//NDIS_PACKET_TYPE_802_11_MULTICAST_MGMT |
+	//		//NDIS_PACKET_TYPE_802_11_ALL_MULTICAST_MGMT |
+	//		//NDIS_PACKET_TYPE_802_11_DIRECTED_MGMT |
+	//		//NDIS_PACKET_TYPE_802_11_DIRECTED_CTRL
+	//		0;
+
+	//	if( FALSE == (BOOLEAN)DeviceIoControl(
+	//		hDeviceHandle,
+	//		IOCTL_NDISPROT_SET_OID_VALUE,
+	//		(LPVOID)&SetBuffer[0],
+	//		sizeof(SetBuffer),
+	//		(LPVOID)&SetBuffer[0],
+	//		sizeof(SetBuffer),
+	//		&BytesReturned,
+	//		NULL) )
+	//	{
+	//		puts( "set filter failed!" );
+	//		return FALSE;
+	//	}
+	//}
+
+	{
+		UCHAR SetBuffer[sizeof(NDISPROT_SET_OID)+sizeof(ULONG)];
+		PNDISPROT_SET_OID pSetOid = (PNDISPROT_SET_OID)&SetBuffer[0];
+		pSetOid->Oid = OID_DOT11_CURRENT_OPERATION_MODE;
+		pSetOid->PortNumber = 0;
+		PDOT11_CURRENT_OPERATION_MODE pMode = (PDOT11_CURRENT_OPERATION_MODE)pSetOid->Data;
+		pMode->uReserved = 0;
+		pMode->uCurrentOpMode = DOT11_OPERATION_MODE_NETWORK_MONITOR;
+
+		if( FALSE == (BOOLEAN)DeviceIoControl(
+			hDeviceHandle,
+			IOCTL_NDISPROT_SET_OID_VALUE,
+			(LPVOID)&SetBuffer[0],
+			sizeof(SetBuffer),
+			(LPVOID)&SetBuffer[0],
+			sizeof(SetBuffer),
+			&BytesReturned,
+			NULL) )
+		{
+			puts( "enter monitor mode failed." );
+			return FALSE;
+		}
+
+	}
+
+	return TRUE;
+}
+
+VOID TerminateDevice( HANDLE hDeviceHandle )
+{
+	DWORD BytesReturned = 0;
+	UCHAR SetBuffer[sizeof(NDISPROT_SET_OID)+sizeof(DOT11_CURRENT_OPERATION_MODE)];
+
+	PNDISPROT_SET_OID pSetOid = (PNDISPROT_SET_OID)&SetBuffer[0];
+	pSetOid->Oid = OID_DOT11_CURRENT_OPERATION_MODE;
+	pSetOid->PortNumber = 0;
+	PDOT11_CURRENT_OPERATION_MODE pMode = (PDOT11_CURRENT_OPERATION_MODE)pSetOid->Data;
+	pMode->uCurrentOpMode = DOT11_OPERATION_MODE_EXTENSIBLE_STATION;
+	pMode->uReserved = 0;
+
+	BOOL bSuccess = (BOOLEAN)DeviceIoControl(
+		hDeviceHandle,
+		IOCTL_NDISPROT_SET_OID_VALUE,
+		(LPVOID)&SetBuffer[0],
+		sizeof(SetBuffer),
+		(LPVOID)&SetBuffer[0],
+		sizeof(SetBuffer),
+		&BytesReturned,
+		NULL);
+
+	CloseHandle( hDeviceHandle );
+
+}
+
+int _tmain(int argc, _TCHAR* argv[])
+{
+	TestWlanApi( argc, argv );
+
+	HANDLE DeviceHandle = OpenHandle(pNdisProtDevice);
+
+	if( DeviceHandle == INVALID_HANDLE_VALUE )
+	{
+		_tprintf((_T("Failed to open %s\n"), pNdisProtDevice));
+		return -1;
+	}
+
+	wstring strDeviceName[256][2];
+	int nCount = EnumerateDevices( DeviceHandle, strDeviceName );
+	if( nCount == 0 )
+	{
+		puts( "no device bind." );
+		return -1;
+	}
+
+	for( int i = 0; i < nCount; ++i )
+	{
+		printf( "%2d.%S\n	%S\n\n", i, strDeviceName[i][0].c_str(), strDeviceName[i][1].c_str() );
+	}
+	TCHAR szBuffer[256];
+	DWORD dwRead = 0;
+	//if( ReadConsole( GetStdHandle(STD_INPUT_HANDLE), szBuffer, _countof(szBuffer), &dwRead, NULL ) == FALSE )
+	//{
+	//	puts( "error input" );
+	//	return -1;
+	//}
+	//szBuffer[dwRead] = 0;
+	//int nChoice = _ttoi( szBuffer );
+
+	int nChoice = 0;
+	if( nChoice > nCount )
+	{
+		puts( "error input." );
+		return -1;
+	}
+
+	InitializeDevice( DeviceHandle, strDeviceName[nChoice][0].c_str(), strDeviceName[nChoice][0].length()*sizeof(WCHAR) );
+
+	for( int i = 0; i < 3; ++i )
+	{
+		if( ReadFile( DeviceHandle, szBuffer, sizeof(szBuffer), &dwRead, NULL ) )
+		{
+
+		}
+	}
+	TerminateDevice( DeviceHandle );
+}

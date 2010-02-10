@@ -32,8 +32,13 @@
 
 #endif // ALLOC_PRAGMA
 
+//
+//  Globals:
+//
+NDISPROT_GLOBALS         Globals = {0};
 
-VOID WIFICAPTURE_DriverUnload(
+
+VOID NdisprotUnload(
     IN PDRIVER_OBJECT		DriverObject
     )
 {
@@ -76,7 +81,7 @@ NTSTATUS DriverEntry(
 {
 	NDIS_PROTOCOL_DRIVER_CHARACTERISTICS   protocolChar;
 	NTSTATUS                        status = STATUS_SUCCESS;
-	NDIS_STRING                     protoName = NDIS_STRING_CONST("NDISPROT");     
+	NDIS_STRING                     protoName = NDIS_STRING_CONST("WIFICAPTURE");     
 	UNICODE_STRING                  ntDeviceName;
 	UNICODE_STRING                  win32DeviceName;
 	BOOLEAN                         fSymbolicLink = FALSE;
@@ -144,7 +149,7 @@ NTSTATUS DriverEntry(
 
 
 		protocolChar.Header.Type                = NDIS_OBJECT_TYPE_PROTOCOL_DRIVER_CHARACTERISTICS,
-			protocolChar.Header.Size                = sizeof(NDIS_PROTOCOL_DRIVER_CHARACTERISTICS);
+		protocolChar.Header.Size                = sizeof(NDIS_PROTOCOL_DRIVER_CHARACTERISTICS);
 		protocolChar.Header.Revision            = NDIS_PROTOCOL_DRIVER_CHARACTERISTICS_REVISION_1;
 
 		protocolChar.MajorNdisVersion            = 6;
