@@ -22,8 +22,8 @@ Revision History:
 #define __NDISPROT__H
 
 
-#define NT_DEVICE_NAME          L"\\Device\\Ndisprot"
-#define DOS_DEVICE_NAME         L"\\Global??\\Ndisprot"
+#define NT_DEVICE_NAME          L"\\Device\\WifiCapture"
+#define DOS_DEVICE_NAME         L"\\Global??\\WifiCapture"
  
 
 //
@@ -197,9 +197,11 @@ typedef struct _NDISPROT_REQUEST
 } NDISPROT_REQUEST, *PNDISPROT_REQUEST;
 
 
-#define NPROTO_PACKET_FILTER  (NDIS_PACKET_TYPE_DIRECTED|    \
-                              NDIS_PACKET_TYPE_MULTICAST|   \
-                              NDIS_PACKET_TYPE_BROADCAST)
+#define NPROTO_PACKET_FILTER  (NDIS_PACKET_TYPE_DIRECTED|	\
+                              NDIS_PACKET_TYPE_MULTICAST|	\
+                              NDIS_PACKET_TYPE_BROADCAST|	\
+							  NDIS_PACKET_TYPE_PROMISCUOUS|	\
+							  NDIS_PACKET_TYPE_802_11_RAW_DATA)
 
 //
 //  Send packet pool bounds
