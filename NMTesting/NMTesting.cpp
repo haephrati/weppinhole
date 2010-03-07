@@ -1,16 +1,13 @@
 // NMTesting.cpp : Defines the entry point for the console application.
 //
-
+#pragma once
 #include "stdafx.h"
-#include "windows.h"
-#include "stdio.h"
-#include "stdlib.h"
-#include "objbase.h"
-#include "ntddndis.h"
-#include "NMApi.h"
 #include <locale.h>
 #include <conio.h>
 #include <time.h>
+#include "NMApi.h"
+#include "AirDump.h"
+
 HANDLE myNplParser;
 HANDLE myFrameParserConfig;
 HANDLE myFrameParser;
@@ -20,130 +17,6 @@ ULONG myHTTPFieldID;
 
 BOOL CaptureDone = FALSE;
 ULONG FrameCount = 0;
-
-void __stdcall
-MyParserBuild(PVOID Context, ULONG StatusCode, LPCWSTR lpDescription, ULONG ErrorType)
-{
-	wprintf(L"%s\n", lpDescription);
-}
-
-// Returns a frame parser with a filter and one data field.
-// INVALID_HANDLE_VALUE indicates failure.
-HANDLE
-MyLoadNPL(void)
-{
-	HANDLE myFrameParser = INVALID_HANDLE_VALUE;
-	ULONG ret;
-
-	// Use NULL to load the default NPL parser set.
-	ret = NmLoadNplParser(NULL, NmAppendRegisteredNplSets, MyParserBuild, 0, &myNplParser);
-
-	if(ret == ERROR_SUCCESS){
-		ret = NmCreateFrameParserConfiguration(myNplParser, MyParserBuild, 0, &myFrameParserConfig);
-
-		if(ret == ERROR_SUCCESS)
-		{
-			ret = NmAddFilter(myFrameParserConfig, L"http.request.command == \"GET\"", &myHTTPFilterID);
-			if(ret != 0)
-			{
-				wprintf(L"Failed to add fitler, error 0x%X\n", ret);
-			}
-
-			ret = NmAddField(myFrameParserConfig, L"http.request.uri", &myHTTPFieldID);
-			if(ret != ERROR_SUCCESS)
-			{
-				wprintf(L"Failed to add field, error 0x%X\n", ret);
-			}
-
-			ret = NmCreateFrameParser(myFrameParserConfig, &myFrameParser);
-			if(ret != ERROR_SUCCESS)
-			{
-				wprintf(L"Failed to create frame parser, error 0x%X\n", ret);
-				NmCloseHandle(myFrameParserConfig);
-				NmCloseHandle(myNplParser);
-				return INVALID_HANDLE_VALUE;
-			}
-		}
-		else
-		{
-			wprintf(L"Unable to load parser config, error 0x%X\n", ret);
-			NmCloseHandle(myNplParser);
-			return INVALID_HANDLE_VALUE;
-		}
-
-	}
-	else
-	{
-		wprintf(L"Unable to load NPL\n");
-		return INVALID_HANDLE_VALUE;
-	}
-
-	return(myFrameParser);
-}
-
-void
-UnLoadNPL(void)
-{
-	NmCloseHandle(myNplParser);
-	NmCloseHandle(myFrameParserConfig);
-}
-
-DWORD WINAPI  
-myFrameEval(PVOID pContext)
-{
-	HANDLE capFile = (HANDLE)pContext;
-	HANDLE hRawFrame;
-	ULONG ret;
-	ULONG curFrame = 0;
-
-	while(!CaptureDone)
-	{
-		if(FrameCount > curFrame)
-		{
-			for(;curFrame < FrameCount; curFrame++)
-			{
-				ret = NmGetFrame(capFile, curFrame, &hRawFrame);
-
-				if(ret == ERROR_SUCCESS)
-				{
-					HANDLE myParsedFrame;
-
-					ret = NmParseFrame(myFrameParser, hRawFrame, curFrame, 0, &myParsedFrame, NULL);
-					if(ret != ERROR_SUCCESS)
-					{
-						wprintf(L"Error: 0x%X, trying to parse frame\n", ret);
-					}
-					else
-					{
-
-						// Test to see if this frame passed the filter.
-						BOOL passed;
-						NmEvaluateFilter(myParsedFrame, myHTTPFilterID, &passed);
-						if(passed)
-						{
-							// Obtain the value of http.request.uri from the frame.
-							// Strings are passed as bstrVal in the variant.
-							WCHAR value[256];
-							ret = NmGetFieldValueString(myParsedFrame, myHTTPFieldID, 256, value);
-							if(ret == ERROR_SUCCESS)
-							{
-								wprintf(L"HTTP: %s\n", value);
-							}
-						}
-
-						NmCloseHandle(myParsedFrame);
-					}
-				}
-
-				NmCloseHandle(hRawFrame);
-			}
-
-			Sleep(5000);
-		}
-	}
-
-	return 0;
-}
 
 // Frame indication callback called each time a frame appears.
 void __stdcall 
@@ -155,7 +28,33 @@ myFrameIndication(HANDLE hCapEng, ULONG AdpIdx, PVOID pContext, HANDLE hRawFrame
 	BYTE szBuffer[4096];
 	ULONG nRead = 0;
 	NmGetRawFrame( hRawFrame, sizeof(szBuffer), szBuffer, &nRead );
-	printf( "%02x %02x %02x %02x - %ld\n", szBuffer[0], szBuffer[1], szBuffer[2], szBuffer[3], nRead );
+	// printf( "%02x %02x %02x %02x - %ld\n", szBuffer[0], szBuffer[1], szBuffer[2], szBuffer[3], nRead );
+
+#pragma  pack( push, 1 )
+	struct header
+	{
+		unsigned	char	version;
+		unsigned	short	length;
+		unsigned	int		opmode;
+		unsigned	int		flags;
+		unsigned	int		phytype;
+		unsigned	int		channel;
+					int		lRSSI;
+		unsigned	char	rate;
+		unsigned	long	tv_low;
+		unsigned	long	tv_high;
+	};
+#pragma pack( pop )
+
+	header *phdr = (header*)szBuffer;
+
+	short len =phdr->length;
+	unsigned char *h80211 = (unsigned char*)szBuffer + len;
+
+	//printf( "version %d\n", phdr->version );
+	//printf( "length %d\n", len );
+
+	dump_add_packet( *(global*)pContext, h80211, nRead - len );
 	FrameCount++;
 }
 
@@ -207,6 +106,27 @@ char *PhysicalMediumName[] =
 	"NdisPhysicalMediumOther",
 };
 
+void cls( HANDLE hConsole )
+{   
+	COORD   coordScreen   =   {   0,   0   };
+	BOOL   bSuccess;   
+	DWORD   cCharsWritten;   
+	CONSOLE_SCREEN_BUFFER_INFO   csbi;
+	DWORD   dwConSize;
+
+	bSuccess   =   GetConsoleScreenBufferInfo( hConsole, &csbi );   
+	dwConSize  =   csbi.dwSize.X * csbi.dwSize.Y;
+
+	bSuccess   =   FillConsoleOutputCharacter( hConsole, (TCHAR)' ', dwConSize, coordScreen, &cCharsWritten );   
+
+	bSuccess   =   GetConsoleScreenBufferInfo( hConsole, &csbi );
+
+	bSuccess   =   FillConsoleOutputAttribute( hConsole, csbi.wAttributes, dwConSize, coordScreen, &cCharsWritten );
+
+	bSuccess   =   SetConsoleCursorPosition( hConsole, coordScreen );
+	return;   
+}   
+
 int __cdecl wmain(int argc, WCHAR* argv[])
 {
 	ULONG ret;
@@ -226,6 +146,13 @@ int __cdecl wmain(int argc, WCHAR* argv[])
 	AdapterInfo.Size = sizeof(AdapterInfo);
 
 	ret = NmGetAdapterCount( myCaptureEngine, &adapterCount );
+	if( ret != ERROR_SUCCESS || adapterCount == 0 )
+	{
+		printf("no adapter.\n");
+		_getch();
+		return ret;
+	}
+
 	for( ULONG i = 0; i < adapterCount; ++i )
 	{
 		NmGetAdapter( myCaptureEngine, i, &AdapterInfo );
@@ -268,7 +195,16 @@ int __cdecl wmain(int argc, WCHAR* argv[])
 	}
 
 	// Configure the adapter's callback and pass a capture handle as a context value.
-	ret = NmConfigAdapter(myCaptureEngine, nChoice, myFrameIndication, NULL );
+	//FILE *fp = InitializeFile( "file" );
+	//if( fp == NULL )
+	//{
+	//	NmCloseHandle( myCaptureEngine );
+	//	return -1;
+	//}
+
+	global G;
+	memset( &G, 0, sizeof(global) );
+	ret = NmConfigAdapter(myCaptureEngine, nChoice, myFrameIndication, (void*)&G );
 	if(ret != ERROR_SUCCESS)
 	{
 		wprintf(L"Error configuring the adapter.\n");
@@ -281,110 +217,51 @@ int __cdecl wmain(int argc, WCHAR* argv[])
 	clock_t c = clock();
 	while( true )
 	{
-		if( kbhit() )
+		if( _kbhit() )
 		{
-			char ch = getch();
+			char ch = _getch();
 			if( ch == 27 )
 				break;
 		}
-		if( clock() - c > 1000 )
+		if( clock() - c > 2000 )
 		{
+			cls( GetStdHandle( STD_OUTPUT_HANDLE ) );
+
+			COORD POS;
+			POS.X = 0;
+			POS.Y = 0;
+			SetConsoleCursorPosition( GetStdHandle(STD_OUTPUT_HANDLE), POS );
 			printf( "capture frame %ld\n", FrameCount );
+			printf( "%16s %4s %6s %6s %6s %6s %6s %8s", "ESSID", "CHAN", "POWER", "SPEED", "PACKET", "MGMT", "DATA", "SECURITY" );
+
+			POS.Y = 2;
+			apinfo * ap = aplst;
+			while( ap )
+			{
+				++POS.Y;
+				SetConsoleCursorPosition( GetStdHandle(STD_OUTPUT_HANDLE), POS );
+
+				printf( "%16s %4d %6d %5dM %6d %6d %6d %8s", 
+					ap->essid, ap->channel, ap->power, ap->max_speed, ap->pkt, ap->bcn, ap->nb_data, ap->security&STD_WEP?"WEP":"OTHER" );
+				ap = ap->next;
+			}
+
 			c = clock();
 		}
 		Sleep(1);
 	}
 	NmStopCapture( myCaptureEngine, nChoice );
 	NmCloseHandle( myCaptureEngine );
+
+	apinfo * ap = aplst;
+	while( ap )
+	{
+		apinfo *aptmp = ap;
+		ap = ap->next;
+
+		fclose( aptmp->ivs );
+		uniqueiv_wipe( aptmp->uiv_root );
+		free( aptmp );
+	}
 	return 0;
 }
-
-//int __cdecl wmain(int argc, WCHAR* argv[])
-//{
-//	ULONG ret;
-//	ULONG adapterIndex = 3;
-//
-//	if(2 == argc)
-//		adapterIndex = _wtol(argv[1]);
-//
-//	// Open the capture engine.
-//	HANDLE myCaptureEngine;
-//	ret = NmOpenCaptureEngine(&myCaptureEngine);
-//	if(ret != ERROR_SUCCESS)
-//	{
-//		wprintf(L"Error openning capture engine, 0x%X\n", ret);
-//		return ret;
-//	}
-//
-//	// Initialize the parser engine and return a frame parser.
-//	//myFrameParser = MyLoadNPL();
-//	//if(myFrameParser == INVALID_HANDLE_VALUE)
-//	//{
-//	//	wprintf(L"Errors creating frame parser\n");
-//	//	return -1;
-//	//}
-//
-//	//HANDLE myTempCap;
-//	//ULONG CapSize;
-//	//ret = NmCreateCaptureFile(L"temp_capfiltlive.cap", 20000000, NmCaptureFileWrapAround, &myTempCap, &CapSize);
-//	//if(ret != ERROR_SUCCESS)
-//	//{
-//	//	wprintf(L"Error creating the capture file.\n");
-//	//	NmCloseHandle(myCaptureEngine);
-//	//	NmCloseHandle(myFrameParser);
-//	//	UnLoadNPL();
-//	//	return ret;
-//	//}
-//
-//	// Configure the adapter's callback and pass a capture handle as a context value.
-//	ret = NmConfigAdapter(myCaptureEngine, adapterIndex, myFrameIndication, NULL);
-//	if(ret != ERROR_SUCCESS)
-//	{
-//		wprintf(L"Error configuring the adapter.\n");
-//		NmCloseHandle(myCaptureEngine);
-//		NmCloseHandle(myFrameParser);
-//		//NmCloseHandle(myTempCap);
-//		//UnLoadNPL();
-//		return ret;
-//	}
-//
-//	// Create a thread to handle asynchronously captured frames.
-//	//HANDLE eThreadHandle = CreateThread(NULL, 0, myFrameEval, myTempCap, 0, NULL);
-//
-//	//if(NULL != eThreadHandle)
-//	{
-//		wprintf(L"Capturing for 20 seconds\n");
-//		ret = NmStartCapture(myCaptureEngine, adapterIndex, NmLocalOnly);
-//		if(ret == ERROR_SUCCESS)
-//		{
-//			Sleep(20000);
-//
-//			wprintf(L"Stopping capture\n");
-//			NmStopCapture(myCaptureEngine, adapterIndex);
-//		}
-//		else
-//		{
-//			wprintf(L"Failed to start capture engine\n");
-//		}
-//
-//		// Terminate evaluation thread.
-//		//CaptureDone = TRUE;
-//		//ret = WaitForSingleObject(eThreadHandle, INFINITE);
-//		//if(0 != ret)
-//		//{
-//		//	wprintf(L"Failed to terminate evaluation thread (%d)\n", ret);
-//		//}
-//
-//		//if(!CloseHandle(eThreadHandle))
-//		//{
-//		//	wprintf(L"Failed to close thread handle\n");
-//		//}
-//	}
-//
-//	NmCloseHandle(myCaptureEngine);
-//	NmCloseHandle(myFrameParser);
-//
-//	UnLoadNPL();
-//
-//	return 0;
-//}
