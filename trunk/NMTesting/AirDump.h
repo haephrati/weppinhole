@@ -83,7 +83,7 @@ struct apinfo
 	unsigned int security;
 	int preamble;
 
-	char bssid[6];
+	unsigned char bssid[6];
 	char essid[256];
 
 	char channel;

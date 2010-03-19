@@ -153,37 +153,54 @@ int __cdecl wmain(int argc, WCHAR* argv[])
 		return ret;
 	}
 
+	int n80211 = 0;
 	for( ULONG i = 0; i < adapterCount; ++i )
 	{
 		NmGetAdapter( myCaptureEngine, i, &AdapterInfo );
-		if( AdapterInfo.MediumType == NdisMediumNative802_11 && AdapterInfo.PhysicalMediumType == NdisPhysicalMediumNative802_11 )
-		printf( 
-			"AdapterIndex :%d\n"
-			"PermanentAddr : %02X:%02X:%02X:%02X:%02X:%02X\n" 
-			"CurrentAddr : %02X:%02X:%02X:%02X:%02X:%02X\n"
-			"ConnectionName : %S\n"
-			"FriendlyName : %S\n"
-			"MediumType : %s\n"
-			"PhysicalMediumType : %s\n\n"
-			, i
-			, AdapterInfo.PermanentAddr[0],AdapterInfo.PermanentAddr[1],AdapterInfo.PermanentAddr[2]
-			, AdapterInfo.PermanentAddr[3],AdapterInfo.PermanentAddr[4],AdapterInfo.PermanentAddr[5]
-			, AdapterInfo.CurrentAddr[0],AdapterInfo.CurrentAddr[1],AdapterInfo.CurrentAddr[2]
-			, AdapterInfo.CurrentAddr[3],AdapterInfo.CurrentAddr[4],AdapterInfo.CurrentAddr[5]
-			, AdapterInfo.ConnectionName
-			, AdapterInfo.FriendlyName
-			, MediumName[AdapterInfo.MediumType]
-			, PhysicalMediumName[AdapterInfo.PhysicalMediumType]
-			);
+		//if( AdapterInfo.MediumType == NdisMediumNative802_11 && AdapterInfo.PhysicalMediumType == NdisPhysicalMediumNative802_11 )
+		{
+			printf( 
+				"AdapterIndex :%d\n"
+				"PermanentAddr : %02X:%02X:%02X:%02X:%02X:%02X\n" 
+				"CurrentAddr : %02X:%02X:%02X:%02X:%02X:%02X\n"
+				"ConnectionName : %S\n"
+				"FriendlyName : %S\n"
+				"MediumType : %s\n"
+				"PhysicalMediumType : %s\n\n"
+				, i
+				, AdapterInfo.PermanentAddr[0],AdapterInfo.PermanentAddr[1],AdapterInfo.PermanentAddr[2]
+				, AdapterInfo.PermanentAddr[3],AdapterInfo.PermanentAddr[4],AdapterInfo.PermanentAddr[5]
+				, AdapterInfo.CurrentAddr[0],AdapterInfo.CurrentAddr[1],AdapterInfo.CurrentAddr[2]
+				, AdapterInfo.CurrentAddr[3],AdapterInfo.CurrentAddr[4],AdapterInfo.CurrentAddr[5]
+				, AdapterInfo.ConnectionName
+				, AdapterInfo.FriendlyName
+				, MediumName[AdapterInfo.MediumType]
+				, PhysicalMediumName[AdapterInfo.PhysicalMediumType]
+				);
+			++n80211;
+		}
+	}
+
+	if( n80211 == 0 )
+	{
+		puts( "Cannot found wifi card." );
+		return -1;
 	}
 
 	TCHAR szBuffer[256];
 	DWORD dwRead = 0;
 	if( ReadConsole( GetStdHandle(STD_INPUT_HANDLE), szBuffer, _countof(szBuffer), &dwRead, NULL ) == FALSE )
 	{
-		puts( "error input" );
+		puts( "error input." );
 		return -1;
 	}
+
+	if( dwRead == 0 )
+	{
+		puts( "cancel input." );
+		return -1;
+	}
+
 	szBuffer[dwRead] = 0;
 	ULONG nChoice = _ttol( szBuffer );
 
@@ -232,7 +249,7 @@ int __cdecl wmain(int argc, WCHAR* argv[])
 			POS.Y = 0;
 			SetConsoleCursorPosition( GetStdHandle(STD_OUTPUT_HANDLE), POS );
 			printf( "capture frame %ld\n", FrameCount );
-			printf( "%16s %4s %6s %6s %6s %6s %6s %8s", "ESSID", "CHAN", "POWER", "SPEED", "PACKET", "MGMT", "DATA", "SECURITY" );
+			printf( "%16s|%4s|%3s|%3s(M)|%6s|%6s|%6s|%8s|%s", "ESSID", "CHAN", "POW", "SPD", "PACKET", "MGMT", "DATA", "SECURITY", "BSSID" );
 
 			POS.Y = 2;
 			apinfo * ap = aplst;
@@ -241,8 +258,10 @@ int __cdecl wmain(int argc, WCHAR* argv[])
 				++POS.Y;
 				SetConsoleCursorPosition( GetStdHandle(STD_OUTPUT_HANDLE), POS );
 
-				printf( "%16s %4d %6d %5dM %6d %6d %6d %8s", 
-					ap->essid, ap->channel, ap->power, ap->max_speed, ap->pkt, ap->bcn, ap->nb_data, ap->security&STD_WEP?"WEP":"OTHER" );
+				char szMac[32];
+				_snprintf( szMac, sizeof(szMac), "%02x-%02x-%02x %02x-%02x-%02x", ap->bssid[0], ap->bssid[1], ap->bssid[2], ap->bssid[3], ap->bssid[4], ap->bssid[5] );
+				printf( "%16s %4d %3d %5dM %6d %6d %6d %8s %s", 
+					ap->essid, ap->channel, ap->power, ap->max_speed, ap->pkt, ap->bcn, ap->nb_data, (ap->security&STD_WEP?"WEP":"OTHER"), szMac );
 				ap = ap->next;
 			}
 
