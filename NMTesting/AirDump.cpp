@@ -333,10 +333,10 @@ int dump_add_packet( global &G, unsigned char *h80211, int caplen )
 		goto skip_station;
 	}
 
-	ap_cur->pkt++;
 
 skip_station:
 
+	ap_cur->pkt++;
 	/* packet parsing: Beacon or Probe Response */
 
 	if( h80211[0] == 0x80 || h80211[0] == 0x50 )
@@ -642,8 +642,7 @@ skip_station:
 
 			p += 2 + p[1];
 		}
-		//if(st_cur != NULL)
-		//	st_cur->wpa.state = 0;
+		++ap_cur->bcn;
 	}
 
 	/* packet parsing: some data */
@@ -812,15 +811,10 @@ skip_station:
 				}
 
 				uniqueiv_mark( ap_cur->uiv_root, &h80211[z] );
-
-				ap_cur->nb_data++;
 			}
 
 		}
-		else
-		{
-			ap_cur->nb_data++;
-		}
+		ap_cur->nb_data++;
 	}
 write_packet:
 	return( 0 );
