@@ -1,6 +1,10 @@
 #include "stdafx.h"
 #include "AirDump.h"
+#include "aircrack-ptw-lib.h"
+
 apinfo *aplst = NULL;
+int PTW_DEFAULTWEIGHT[1] = { 256 };
+int PTW_DEFAULTBF[PTW_KEYHSBYTES] = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
 
 FILE* InitializeFile( unsigned char bssid[6] )
 {
@@ -48,21 +52,45 @@ apinfo *getap( unsigned char bssid[6] )
 		ap->nb_data = 0;
 		ap->power = 0;
 		memcpy( ap->bssid, bssid, 6 );
+		ap->keylen = 13;
 
 		ap->security = 0;
 		ap->essid_stored = 0;
 		ap->power = 0;
 		ap->ssid_length = 0;
 		ap->preamble = 0;
+		ap->crack_result = false;
 		ap->ivs = InitializeFile( bssid );
 		ap->uiv_root = uniqueiv_init();
+
+		ap->next = aplst;
+
+		ap->ptw_clean = PTW_newattackstate();
+		if (!ap->ptw_clean) 
+		{
+			perror("PTW_newattackstate()");
+			free(ap);
+			return NULL;
+		}
+
+		ap->ptw_vague = PTW_newattackstate();
+		if (!ap->ptw_vague) 
+		{
+			perror("PTW_newattackstate()");
+			free(ap_cur);
+			return NULL;
+		}
+
+		ap->nb_ivs = 0;
+		ap->nb_ivs_clean = 0;
+		ap->nb_ivs_vague = 0;
+
 		if( ap->ivs == NULL )
 		{
 			free( ap );
 			return NULL;
 		}
 
-		ap->next = aplst;
 		aplst = ap;
 		return ap;
 	}
@@ -86,7 +114,7 @@ int is_arp(unsigned char *wh, int len)
 
 int is_qos_arp_tkip(unsigned char *wh, int len)
 {
-	unsigned char *packet = (unsigned char*) wh;
+	unsigned char *packet = wh;
 	int qosarpsize = (24 + 2) + 8 + (8 + (8 + 10*2)) + 8 + 4; //82 in total
 
 	if((packet[1] & 3) == 1) //to ds
@@ -257,6 +285,80 @@ int known_clear(unsigned char *clear, int *clen, int *weight, unsigned char *wh,
 	return 1;
 }
 
+int crack_wep_ptw( apinfo *ap_cur )
+{
+	int (*all)[256];
+	int i, j, len = 0;
+
+	all = (int(*)[256])malloc(256*32*sizeof(int));
+	if (all == NULL) 
+	{
+		return FAILURE;
+	}
+
+	//initial setup (complete keyspace)
+	for (i = 0; i < 32; i++) 
+	{
+		for (j = 0; j < 256; j++) 
+		{
+			all[i][j] = 1;
+		}
+	}
+
+	if(ap_cur->nb_ivs_clean > 99)
+	{
+		ap_cur->nb_ivs = ap_cur->nb_ivs_clean;
+		//first try without bruteforcing, using only "clean" keystreams
+		if(ap_cur->keylen != 13)
+		{
+			if(PTW_computeKey(ap_cur->ptw_clean, ap_cur->key, ap_cur->keylen, (KEYLIMIT*FFACT), PTW_DEFAULTBF, all, 0) == 1)
+				len = ap_cur->keylen;
+		}
+		else
+		{
+			/* try 1000 40bit keys first, to find the key "instantly" and you don't need to wait for 104bit to fail */
+			if(PTW_computeKey(ap_cur->ptw_clean, ap_cur->key, 5, 1000, PTW_DEFAULTBF, all, 0) == 1)
+				len = 5;
+			else if(PTW_computeKey(ap_cur->ptw_clean, ap_cur->key, 13, (KEYLIMIT*FFACT), PTW_DEFAULTBF, all, 0) == 1)
+				len = 13;
+			else if(PTW_computeKey(ap_cur->ptw_clean, ap_cur->key, 5, (KEYLIMIT*FFACT)/3, PTW_DEFAULTBF, all, 0) == 1)
+				len = 5;
+		}
+	}
+
+	if(!len)
+	{
+		ap_cur->nb_ivs = ap_cur->nb_ivs_vague;
+		//in case its not found, try bruteforcing the id field and include "vague" keystreams
+		PTW_DEFAULTBF[10]=1;
+		PTW_DEFAULTBF[11]=1;
+		//        PTW_DEFAULTBF[12]=1;
+
+		if(ap_cur->keylen != 13)
+		{
+			if(PTW_computeKey(ap_cur->ptw_vague, ap_cur->key, ap_cur->keylen, (KEYLIMIT*FFACT), PTW_DEFAULTBF, all, 0) == 1)
+				len = ap_cur->keylen;
+		}
+		else
+		{
+			/* try 1000 40bit keys first, to find the key "instantly" and you don't need to wait for 104bit to fail */
+			if(PTW_computeKey(ap_cur->ptw_vague, ap_cur->key, 5, 1000, PTW_DEFAULTBF, all, 0) == 1)
+				len = 5;
+			else if(PTW_computeKey(ap_cur->ptw_vague, ap_cur->key, 13, (KEYLIMIT*FFACT), PTW_DEFAULTBF, all, 0) == 1)
+				len = 13;
+			else if(PTW_computeKey(ap_cur->ptw_vague, ap_cur->key, 5, (KEYLIMIT*FFACT)/10, PTW_DEFAULTBF, all, 0) == 1)
+				len = 5;
+		}
+	}
+
+	free( all );
+	if (!len)
+		return FAILURE;
+
+	//puts( (const char*)ap_cur->key );
+	return SUCCESS;
+}
+
 int dump_add_packet( global &G, unsigned char *h80211, int caplen )
 {
 	int i, n, z, seq, dlen, offset, clen, o;
@@ -300,6 +402,10 @@ int dump_add_packet( global &G, unsigned char *h80211, int caplen )
 
 	/* update our chained list of access points */
 	struct apinfo* ap_cur = getap( bssid );
+
+	// 已经破解的则不再继续分析数据包。
+	if( ap_cur->crack_result )
+		return 0;
 
 	/* locate the station MAC in the 802.11 header */
 
@@ -777,6 +883,39 @@ skip_station:
 						memcpy( G.prev_bssid, ap_cur->bssid,  6 );
 					}
 
+					//////////////////////////////////////////////////////////////////////////
+					// add by albert.xu
+					if( (ivs2.flags & IVS2_ESSID) || (ivs2.flags & IVS2_BSSID) )
+					{
+					}
+					else if( ivs2.flags & IVS2_XOR )
+					{
+						if( ivs2.len >= 16 )
+						{
+							if (PTW_addsession(ap_cur->ptw_clean, (h80211+z), clear, PTW_DEFAULTWEIGHT, 1))
+								ap_cur->nb_ivs_clean++;
+
+							if (PTW_addsession(ap_cur->ptw_vague, (h80211+z), clear, PTW_DEFAULTWEIGHT, 1))
+								ap_cur->nb_ivs_vague++;
+						}
+					}
+					else if( ivs2.flags & IVS2_PTW )
+					{
+						int clearsize;
+
+						clearsize = ivs2.len;
+						//int w[16];
+
+						if (clear[1] >= 13 && clearsize >= (6 + clear[0]*32 + 16*(signed)sizeof(int)))
+						{
+							//memcpy(w, clear+(ivs2.len-4)-15*sizeof(int), 16*sizeof(int));
+
+							if (PTW_addsession(ap_cur->ptw_vague, h80211+z, clear+2, weight, clear[0]))
+								ap_cur->nb_ivs_vague++;
+						}
+					}
+					//////////////////////////////////////////////////////////////////////////
+
 					if( fwrite( &ivs2, 1, sizeof(struct ivs2_pkthdr), ap_cur->ivs )
 						!= (size_t) sizeof(struct ivs2_pkthdr) )
 					{
@@ -815,6 +954,19 @@ skip_station:
 
 		}
 		ap_cur->nb_data++;
+
+		//if( ap_cur->nb_ivs_vague && ap_cur->nb_ivs_vague%5000 == 0 )
+		//{
+		//	int ret = crack_wep_ptw(ap_cur);
+		//	if( ret == FAILURE )
+		//	{
+		//		memset( &ap_cur->wep, 0, sizeof(ap_cur->wep) );
+		//	}
+		//	else if( ret == SUCCESS )
+		//	{
+		//		ap_cur->crack_result = true;
+		//	}
+		//}
 	}
 write_packet:
 	return( 0 );

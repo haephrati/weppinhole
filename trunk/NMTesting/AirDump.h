@@ -1,4 +1,10 @@
 #pragma once
+#define SUCCESS  0
+#define FAILURE  1
+#define RESTART  2
+
+#define KEYLIMIT 1000000
+#define FFACT 2
 //BSSID const. length of 6 bytes; can be together with all the other types
 #define IVS2_BSSID	0x0001
 
@@ -54,6 +60,7 @@
 #define BROADCAST (unsigned char*)"\xFF\xFF\xFF\xFF\xFF\xFF"
 #define SPANTREE  (unsigned char*)"\x01\x80\xC2\x00\x00\x00"
 #define CDP_VTP   (unsigned char*)"\x01\x00\x0C\xCC\xCC\xCC"
+#include "aircrack-ptw-lib.h"
 
 const unsigned char llcnull[4] = {0, 0, 0, 0};
 
@@ -76,12 +83,15 @@ struct global
 struct apinfo
 {
 	struct apinfo *next;
+
+	unsigned char key[64];
 	int power;
 	int bcn;
 	int pkt;
 	int nb_data;
 	unsigned int security;
 	int preamble;
+	int keylen;
 
 	unsigned char bssid[6];
 	char essid[256];
@@ -94,10 +104,16 @@ struct apinfo
 	unsigned char **uiv_root;	/* unique iv root structure */
 								/* if wep-encrypted network */
 
+	PTW_attackstate *ptw_clean;
+	PTW_attackstate *ptw_vague;
+	int nb_ivs;
+	int nb_ivs_clean;
+	int nb_ivs_vague;
+	bool crack_result;
 	FILE *ivs;
 };
 
 extern apinfo *aplst;
 apinfo *getap( char bssid[6] );
-
+int crack_wep_ptw( apinfo *ap_cur );
 int dump_add_packet( global &G, unsigned char *h80211, int caplen );

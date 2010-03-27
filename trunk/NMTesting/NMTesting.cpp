@@ -132,6 +132,11 @@ int __cdecl wmain(int argc, WCHAR* argv[])
 	ULONG ret;
 	ULONG adapterIndex = 0;
 
+	if( argc > 1 )
+	{
+		return 0;
+	}
+
 	setlocale( LC_ALL, "chs" );
 	HANDLE myCaptureEngine;
 	ret = NmOpenCaptureEngine(&myCaptureEngine);
@@ -157,7 +162,7 @@ int __cdecl wmain(int argc, WCHAR* argv[])
 	for( ULONG i = 0; i < adapterCount; ++i )
 	{
 		NmGetAdapter( myCaptureEngine, i, &AdapterInfo );
-		//if( AdapterInfo.MediumType == NdisMediumNative802_11 && AdapterInfo.PhysicalMediumType == NdisPhysicalMediumNative802_11 )
+		if( AdapterInfo.MediumType == NdisMediumNative802_11 && AdapterInfo.PhysicalMediumType == NdisPhysicalMediumNative802_11 )
 		{
 			printf( 
 				"AdapterIndex :%d\n"
@@ -211,14 +216,6 @@ int __cdecl wmain(int argc, WCHAR* argv[])
 		return -1;
 	}
 
-	// Configure the adapter's callback and pass a capture handle as a context value.
-	//FILE *fp = InitializeFile( "file" );
-	//if( fp == NULL )
-	//{
-	//	NmCloseHandle( myCaptureEngine );
-	//	return -1;
-	//}
-
 	global G;
 	memset( &G, 0, sizeof(global) );
 	ret = NmConfigAdapter(myCaptureEngine, nChoice, myFrameIndication, (void*)&G );
@@ -260,8 +257,9 @@ int __cdecl wmain(int argc, WCHAR* argv[])
 
 				char szMac[32];
 				_snprintf( szMac, sizeof(szMac), "%02x-%02x-%02x %02x-%02x-%02x", ap->bssid[0], ap->bssid[1], ap->bssid[2], ap->bssid[3], ap->bssid[4], ap->bssid[5] );
-				printf( "%16s %4d %3d %5dM %6d %6d %6d %8s %s", 
-					ap->essid, ap->channel, ap->power, ap->max_speed, ap->pkt, ap->bcn, ap->nb_data, (ap->security&STD_WEP?"WEP":"OTHER"), szMac );
+				printf( "%16s %4d %3d %5dM %6d %6d %6d %8s \n%s %d/%d %s",
+					ap->essid, ap->channel, ap->power, ap->max_speed, ap->pkt, ap->bcn, ap->nb_data, (ap->security&STD_WEP?"WEP":"OTHER"), 
+					szMac, ap->nb_ivs_clean, ap->nb_ivs_vague, ap->key );
 				ap = ap->next;
 			}
 
@@ -278,6 +276,11 @@ int __cdecl wmain(int argc, WCHAR* argv[])
 		apinfo *aptmp = ap;
 		ap = ap->next;
 
+		if( SUCCESS == crack_wep_ptw( aptmp ) )
+		{
+			puts( (const char*)aptmp->key );
+			_getch();
+		}
 		fclose( aptmp->ivs );
 		uniqueiv_wipe( aptmp->uiv_root );
 		free( aptmp );
