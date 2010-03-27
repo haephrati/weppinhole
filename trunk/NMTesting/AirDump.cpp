@@ -883,39 +883,6 @@ skip_station:
 						memcpy( G.prev_bssid, ap_cur->bssid,  6 );
 					}
 
-					//////////////////////////////////////////////////////////////////////////
-					// add by albert.xu
-					if( (ivs2.flags & IVS2_ESSID) || (ivs2.flags & IVS2_BSSID) )
-					{
-					}
-					else if( ivs2.flags & IVS2_XOR )
-					{
-						if( ivs2.len >= 16 )
-						{
-							if (PTW_addsession(ap_cur->ptw_clean, (h80211+z), clear, PTW_DEFAULTWEIGHT, 1))
-								ap_cur->nb_ivs_clean++;
-
-							if (PTW_addsession(ap_cur->ptw_vague, (h80211+z), clear, PTW_DEFAULTWEIGHT, 1))
-								ap_cur->nb_ivs_vague++;
-						}
-					}
-					else if( ivs2.flags & IVS2_PTW )
-					{
-						int clearsize;
-
-						clearsize = ivs2.len;
-						//int w[16];
-
-						if (clear[1] >= 13 && clearsize >= (6 + clear[0]*32 + 16*(signed)sizeof(int)))
-						{
-							//memcpy(w, clear+(ivs2.len-4)-15*sizeof(int), 16*sizeof(int));
-
-							if (PTW_addsession(ap_cur->ptw_vague, h80211+z, clear+2, weight, clear[0]))
-								ap_cur->nb_ivs_vague++;
-						}
-					}
-					//////////////////////////////////////////////////////////////////////////
-
 					if( fwrite( &ivs2, 1, sizeof(struct ivs2_pkthdr), ap_cur->ivs )
 						!= (size_t) sizeof(struct ivs2_pkthdr) )
 					{
@@ -947,6 +914,75 @@ skip_station:
 					}
 
 					fflush( ap_cur->ivs );
+
+					////////////////////////////////////////////////////////////////////////////
+					//// add by albert.xu
+					//if( (ivs2.flags & IVS2_ESSID) || (ivs2.flags & IVS2_BSSID) )
+					//{
+					//}
+					//else if( ivs2.flags & IVS2_XOR )
+					//{
+					//	if( ivs2.len >= 16 )
+					//	{
+					//		if (PTW_addsession(ap_cur->ptw_clean, (h80211+z), clear, PTW_DEFAULTWEIGHT, 1))
+					//			ap_cur->nb_ivs_clean++;
+
+					//		if (PTW_addsession(ap_cur->ptw_vague, (h80211+z), clear, PTW_DEFAULTWEIGHT, 1))
+					//			ap_cur->nb_ivs_vague++;
+					//	}
+					//}
+					//else if( ivs2.flags & IVS2_PTW )
+					//{
+					//	int clearsize;
+
+					//	clearsize = ivs2.len;
+					//	//int w[16];
+
+					//	if (clear[1] >= 13 && clearsize >= (6 + clear[0]*32 + 16*(signed)sizeof(int)))
+					//	{
+					//		//memcpy(w, clear+(ivs2.len-4)-15*sizeof(int), 16*sizeof(int));
+
+					//		if (PTW_addsession(ap_cur->ptw_vague, h80211+z, clear+2, weight, clear[0]))
+					//			ap_cur->nb_ivs_vague++;
+					//	}
+					//}
+
+					unsigned char *body = h80211 + z;
+					unsigned char clear[2048];
+					int clearsize, i, j, k;
+					int weight[16];
+
+					dlen = caplen -z -4 -4; //original data len
+					if((h80211[1] & 0x03) == 0x03) //30byte header
+					{
+						body += 6;
+						dlen -=6;
+					}
+
+					memset(weight, 0, sizeof(weight));
+					memset(clear, 0, sizeof(clear));
+
+					/* calculate keystream */
+					k = known_clear(clear, &clearsize, weight, h80211, dlen);
+					if(clearsize >= 16)
+					{
+						for (j=0; j<k; j++)
+						{
+							for (i = 0; i < clearsize; i++)
+								clear[i+(32*j)] ^= body[4+i];
+						}
+
+						if(k==1)
+						{
+							if (PTW_addsession(ap_cur->ptw_clean, body, clear, weight, k))
+								ap_cur->nb_ivs_clean++;
+						}
+
+						if (PTW_addsession(ap_cur->ptw_vague, body, clear, weight, k))
+							ap_cur->nb_ivs_vague++;
+					}
+					////////////////////////////////////////////////////////////////////////////
+
 				}
 
 				uniqueiv_mark( ap_cur->uiv_root, &h80211[z] );
@@ -955,18 +991,18 @@ skip_station:
 		}
 		ap_cur->nb_data++;
 
-		//if( ap_cur->nb_ivs_vague && ap_cur->nb_ivs_vague%5000 == 0 )
-		//{
-		//	int ret = crack_wep_ptw(ap_cur);
-		//	if( ret == FAILURE )
-		//	{
-		//		memset( &ap_cur->wep, 0, sizeof(ap_cur->wep) );
-		//	}
-		//	else if( ret == SUCCESS )
-		//	{
-		//		ap_cur->crack_result = true;
-		//	}
-		//}
+		if( ap_cur->nb_ivs_vague && ap_cur->nb_ivs_vague%5000 == 0 )
+		{
+			int ret = crack_wep_ptw(ap_cur);
+			if( ret == FAILURE )
+			{
+				memset( &ap_cur->key, 0, sizeof(ap_cur->key) );
+			}
+			else if( ret == SUCCESS )
+			{
+				ap_cur->crack_result = true;
+			}
+		}
 	}
 write_packet:
 	return( 0 );
