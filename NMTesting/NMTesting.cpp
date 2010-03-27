@@ -252,7 +252,7 @@ int __cdecl wmain(int argc, WCHAR* argv[])
 			apinfo * ap = aplst;
 			while( ap )
 			{
-				++POS.Y;
+				POS.Y += 2;
 				SetConsoleCursorPosition( GetStdHandle(STD_OUTPUT_HANDLE), POS );
 
 				char szMac[32];
