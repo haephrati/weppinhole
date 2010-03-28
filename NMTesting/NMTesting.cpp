@@ -129,13 +129,9 @@ void cls( HANDLE hConsole )
 
 int __cdecl wmain(int argc, WCHAR* argv[])
 {
+	InstallCrashHandle();
 	ULONG ret;
 	ULONG adapterIndex = 0;
-
-	if( argc > 1 )
-	{
-		return 0;
-	}
 
 	setlocale( LC_ALL, "chs" );
 	HANDLE myCaptureEngine;
@@ -252,14 +248,26 @@ int __cdecl wmain(int argc, WCHAR* argv[])
 			apinfo * ap = aplst;
 			while( ap )
 			{
-				POS.Y += 2;
-				SetConsoleCursorPosition( GetStdHandle(STD_OUTPUT_HANDLE), POS );
+				if( ap->security & STD_WEP )
+				{
+					POS.Y += 2;
+					SetConsoleCursorPosition( GetStdHandle(STD_OUTPUT_HANDLE), POS );
 
-				char szMac[32];
-				_snprintf( szMac, sizeof(szMac), "%02x-%02x-%02x %02x-%02x-%02x", ap->bssid[0], ap->bssid[1], ap->bssid[2], ap->bssid[3], ap->bssid[4], ap->bssid[5] );
-				printf( "%16s %4d %3d %5dM %6d %6d %6d %8s \n%s %d/%d %s",
-					ap->essid, ap->channel, ap->power, ap->max_speed, ap->pkt, ap->bcn, ap->nb_data, (ap->security&STD_WEP?"WEP":"OTHER"), 
-					szMac, ap->nb_ivs_clean, ap->nb_ivs_vague, ap->key );
+					char szMac[32];
+					char szKeyHex[256];
+					char szKeyAscii[64];
+					_snprintf( szMac, sizeof(szMac), "%02x-%02x-%02x %02x-%02x-%02x", ap->bssid[0], ap->bssid[1], ap->bssid[2], ap->bssid[3], ap->bssid[4], ap->bssid[5] );
+					int n = 0;
+					for( int i = 0; i < 13; ++i )
+					{
+						n += _snprintf( szKeyHex+n, sizeof(szKeyHex)-n, "%02X ", ap->key[i] );
+						szKeyAscii[i] = isprint( ap->key[i] )?ap->key[i]:'.';
+					}
+					szKeyAscii[13] = 0;
+					printf( "%16s %4d %3d %5dM %6d %6d %6d %8s \n%s %d/%d %s:%s",
+						ap->essid, ap->channel, ap->power, ap->max_speed, ap->pkt, ap->bcn, ap->nb_data, (ap->security&STD_WEP?"WEP":"OTHER"), 
+						szMac, ap->nb_ivs_clean, ap->nb_ivs_vague, szKeyHex, szKeyAscii );
+				}
 				ap = ap->next;
 			}
 
@@ -283,6 +291,7 @@ int __cdecl wmain(int argc, WCHAR* argv[])
 		}
 		fclose( aptmp->ivs );
 		uniqueiv_wipe( aptmp->uiv_root );
+		DeleteCriticalSection( &aptmp->lock );
 		free( aptmp );
 	}
 	return 0;

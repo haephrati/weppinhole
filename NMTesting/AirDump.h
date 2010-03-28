@@ -110,6 +110,7 @@ struct apinfo
 	int nb_ivs_clean;
 	int nb_ivs_vague;
 	bool crack_result;
+	CRITICAL_SECTION lock;
 	FILE *ivs;
 };
 

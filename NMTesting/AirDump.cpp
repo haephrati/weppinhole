@@ -6,30 +6,161 @@ apinfo *aplst = NULL;
 int PTW_DEFAULTWEIGHT[1] = { 256 };
 int PTW_DEFAULTBF[PTW_KEYHSBYTES] = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
 
-FILE* InitializeFile( unsigned char bssid[6] )
+FILE* InitializeFile( apinfo* ap, unsigned char bssid[6] )
 {
 	char filename[256];
 	_snprintf( filename, sizeof(filename), "%02x-%02x-%02x_%02x-%02x-%02x.ivs", bssid[0], bssid[1], bssid[2], bssid[3], bssid[4], bssid[5] );
-	FILE *fp = fopen( filename, "wb+" );
-	if( fp == NULL )
-		return NULL;
 
-	struct ivs2_filehdr fivs2;
-
-	fivs2.version = IVS2_VERSION;
-
-	if( fwrite( IVS2_MAGIC, 1, 4, fp ) != (size_t) 4 )
+	ap->uiv_root = uniqueiv_init();
+	ap->ptw_clean = PTW_newattackstate();
+	if (!ap->ptw_clean) 
 	{
-		perror( "fwrite(IVs file MAGIC) failed" );
+		perror("PTW_newattackstate()");
+		free(ap);
 		return NULL;
 	}
 
-	if( fwrite( &fivs2, 1, sizeof(struct ivs2_filehdr), fp ) != (size_t) sizeof(struct ivs2_filehdr) )
+	ap->ptw_vague = PTW_newattackstate();
+	if (!ap->ptw_vague) 
 	{
-		perror( "fwrite(IVs file header) failed" );
+		perror("PTW_newattackstate()");
+		free(ap);
 		return NULL;
 	}
 
+	FILE *fp = fopen( filename, "rb+" );
+	if( fp != NULL )
+	{
+		char magic[4];
+		struct ivs2_filehdr fivs2;
+		if( fread( magic, sizeof(magic), 1, fp ) != 1 )
+		{
+			fclose(fp);
+			return NULL;
+		}
+
+		if( memcmp( magic, IVS2_MAGIC, 4 ) != 0 )
+		{
+			fclose(fp);
+			return NULL;
+		}
+
+		if( fread( &fivs2, sizeof(fivs2), 1, fp ) != 1 )
+		{
+			fclose(fp);
+			return NULL;
+		}
+
+		if( fivs2.version != IVS2_VERSION )
+		{
+			fclose(fp);
+			return NULL;
+		}
+
+		struct ivs2_pkthdr ivs2;
+		unsigned char *buf = (unsigned char*)malloc( 0xffff );
+		int read = 0;
+		while( !feof(fp) )
+		{
+			if( fread( &ivs2, sizeof(ivs2), 1, fp ) != 1 )
+			{
+				if( feof(fp) ) continue;
+				free( buf );
+				fclose(fp);
+				return NULL;
+			}
+
+			if( ivs2.flags & IVS2_BSSID )
+			{
+				if( fread( buf, 6, 1, fp ) != 1 )
+				{
+					if( feof(fp) ) continue;
+					free( buf );
+					fclose(fp);
+					return NULL;
+				}
+				ivs2.len -= 6;
+			}
+
+			if( fread( buf, ivs2.len, 1, fp ) != 1 )
+			{
+				if( feof(fp) ) continue;
+				free( buf );
+				fclose(fp);
+				return NULL;
+			}
+
+			if( ivs2.flags & IVS2_ESSID )
+			{
+				memcpy( ap->essid, buf, ivs2.len );
+			}
+			else if( ivs2.flags & IVS2_XOR )
+			{
+				int clearsize;
+
+				clearsize = ivs2.len;
+
+				if (clearsize >= 16)
+				{
+					if (PTW_addsession(ap->ptw_clean, buf, buf+4, PTW_DEFAULTWEIGHT, 1))
+						ap->nb_ivs_clean++;
+
+					if (PTW_addsession(ap->ptw_vague, buf, buf+4, PTW_DEFAULTWEIGHT, 1))
+						ap->nb_ivs_vague++;
+				}
+			}
+			else if( ivs2.flags & IVS2_PTW )
+			{
+				int clearsize;
+
+				clearsize = ivs2.len;
+
+				if( buf[5] >= 13 &&
+					clearsize >= (6 + buf[4]*32 + 16*(signed)sizeof(int)) )
+				{
+					int weight[16];
+					memcpy(weight, buf+clearsize-15*sizeof(int), 16*sizeof(int));
+					// 					printf("weight 1: %d, weight 2: %d\n", weight[0], weight[1]);
+
+					if( PTW_addsession(ap->ptw_vague, buf, buf+6, weight, buf[4]) )
+						ap->nb_ivs_vague++;
+				}
+			}
+		}
+		free( buf );
+
+		int ret = crack_wep_ptw(ap);
+		if( ret == FAILURE )
+		{
+			memset( &ap->key, 0, sizeof(ap->key) );
+		}
+		else if( ret == SUCCESS )
+		{
+			ap->crack_result = true;
+		}
+	}
+	else
+	{
+		fp = fopen( filename, "wb+" );
+		if( fp == NULL )
+			return NULL;
+
+		struct ivs2_filehdr fivs2;
+
+		fivs2.version = IVS2_VERSION;
+
+		if( fwrite( IVS2_MAGIC, 1, 4, fp ) != (size_t) 4 )
+		{
+			perror( "fwrite(IVs file MAGIC) failed" );
+			return NULL;
+		}
+
+		if( fwrite( &fivs2, 1, sizeof(struct ivs2_filehdr), fp ) != (size_t) sizeof(struct ivs2_filehdr) )
+		{
+			perror( "fwrite(IVs file header) failed" );
+			return NULL;
+		}
+	}
 	return fp;
 }
 
@@ -47,6 +178,7 @@ apinfo *getap( unsigned char bssid[6] )
 	{
 		apinfo * ap = (apinfo*)malloc( sizeof(apinfo) );
 		memset( ap, 0, sizeof(apinfo) );
+		InitializeCriticalSection( &ap->lock );
 		ap->bcn = 0;
 		ap->pkt = 0;
 		ap->nb_data = 0;
@@ -60,36 +192,23 @@ apinfo *getap( unsigned char bssid[6] )
 		ap->ssid_length = 0;
 		ap->preamble = 0;
 		ap->crack_result = false;
-		ap->ivs = InitializeFile( bssid );
-		ap->uiv_root = uniqueiv_init();
 
 		ap->next = aplst;
 
-		ap->ptw_clean = PTW_newattackstate();
-		if (!ap->ptw_clean) 
-		{
-			perror("PTW_newattackstate()");
-			free(ap);
-			return NULL;
-		}
-
-		ap->ptw_vague = PTW_newattackstate();
-		if (!ap->ptw_vague) 
-		{
-			perror("PTW_newattackstate()");
-			free(ap_cur);
-			return NULL;
-		}
 
 		ap->nb_ivs = 0;
 		ap->nb_ivs_clean = 0;
 		ap->nb_ivs_vague = 0;
 
+		EnterCriticalSection(&ap->lock);
+		ap->ivs = InitializeFile( ap, bssid );
 		if( ap->ivs == NULL )
 		{
+			LeaveCriticalSection( &ap->lock );
 			free( ap );
 			return NULL;
 		}
+		LeaveCriticalSection( &ap->lock );
 
 		aplst = ap;
 		return ap;
@@ -374,12 +493,12 @@ int dump_add_packet( global &G, unsigned char *h80211, int caplen )
 	/* skip packets smaller than a 802.11 header */
 
 	if( caplen < 24 )
-		goto write_packet;
+		return 0;
 
 	/* skip (uninteresting) control frames */
 
 	if( ( h80211[0] & 0x0C ) == 0x04 )
-		goto write_packet;
+		return 0;
 
 	/* if it's a LLC null packet, just forget it (may change in the future) */
 
@@ -402,6 +521,12 @@ int dump_add_packet( global &G, unsigned char *h80211, int caplen )
 
 	/* update our chained list of access points */
 	struct apinfo* ap_cur = getap( bssid );
+	if( ap_cur == NULL )
+	{
+		ASSERT( FALSE );
+		return 0;
+	}
+	CCriticalLock lock( ap_cur->lock );
 
 	// 已经破解的则不再继续分析数据包。
 	if( ap_cur->crack_result )
