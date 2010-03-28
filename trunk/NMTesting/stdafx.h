@@ -17,6 +17,7 @@
 #include <Ntddndis.h>
 #include <ObjBase.h>
 
+#include "Commonlib.h"
 // TODO: reference additional headers your program requires here
 #include <Winsock2.h>
 #pragma comment( lib, "ws2_32.lib")
