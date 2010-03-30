@@ -1,0 +1,19 @@
+Windows Registry Editor Version 5.00
+
+[HKEY_LOCAL_MACHINE\Software\Microsoft\Netmon3]
+NetmonVersion=3.3.1641.0
+
+[HKEY_LOCAL_MACHINE\Software\Microsoft\Netmon3]
+NPLVersion=03.02
+
+[HKEY_LOCAL_MACHINE\Software\Microsoft\Netmon3]
+InstallDir=[INSTALLDIR]
+
+[HKEY_LOCAL_MACHINE\Software\Microsoft\Netmon3]
+NetmonEdition=Capture and Parser Engine
+
+[HKEY_CURRENT_USER\Software\Microsoft\Netmon3\StartPage]
+CheckUpdatesAtStartup=#1
+
+;“微软 MSI 安装工具”文件提取器_赢政版 Ver0.5
+;作者：山顶洞小居  王源深
