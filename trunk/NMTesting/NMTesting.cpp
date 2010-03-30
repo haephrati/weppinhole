@@ -25,10 +25,13 @@ myFrameIndication(HANDLE hCapEng, ULONG AdpIdx, PVOID pContext, HANDLE hRawFrame
 	//HANDLE capFile = (HANDLE)pContext;
 	//NmAddFrame(capFile, hRawFrame);
 
-	BYTE szBuffer[4096];
+	BYTE szBuffer[1024*32];
 	ULONG nRead = 0;
 	NmGetRawFrame( hRawFrame, sizeof(szBuffer), szBuffer, &nRead );
 	// printf( "%02x %02x %02x %02x - %ld\n", szBuffer[0], szBuffer[1], szBuffer[2], szBuffer[3], nRead );
+
+	if( nRead >= sizeof(szBuffer) )
+		return;
 
 #pragma  pack( push, 1 )
 	struct header
@@ -127,9 +130,20 @@ void cls( HANDLE hConsole )
 	return;   
 }   
 
-int __cdecl wmain(int argc, WCHAR* argv[])
+int __cdecl main(int argc, char* argv[])
 {
 	InstallCrashHandle();
+
+	if( argc > 1 )
+	{
+		for( int i = 1; i < argc; ++i )
+		{
+			char *filename = argv[i];
+
+			InitializeFile( filename );
+		}
+	}
+
 	ULONG ret;
 	ULONG adapterIndex = 0;
 
