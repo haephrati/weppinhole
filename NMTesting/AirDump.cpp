@@ -470,6 +470,7 @@ int crack_wep_ptw( apinfo *ap_cur )
 		}
 	}
 
+	ap_cur->key[len] = 0;
 	free( all );
 	if (!len)
 		return FAILURE;

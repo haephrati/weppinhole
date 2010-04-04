@@ -18,6 +18,8 @@ ULONG myHTTPFieldID;
 BOOL CaptureDone = FALSE;
 ULONG FrameCount = 0;
 
+extern apinfo *getap( char bssid[6] );
+
 // Frame indication callback called each time a frame appears.
 void __stdcall 
 myFrameIndication(HANDLE hCapEng, ULONG AdpIdx, PVOID pContext, HANDLE hRawFrame)
@@ -130,6 +132,9 @@ void cls( HANDLE hConsole )
 	return;   
 }   
 
+extern void SetProfile( GUID guidIntf, char *essid, char *pwd );
+extern void GetProfile( int argc, LPWSTR argv[] );
+
 int __cdecl main(int argc, char* argv[])
 {
 	InstallCrashHandle();
@@ -140,7 +145,9 @@ int __cdecl main(int argc, char* argv[])
 		{
 			char *filename = argv[i];
 
-			InitializeFile( filename );
+			unsigned char bssid[16];
+			sscanf( filename, "%02x-%02x-%02x_%02x-%02x-%02x.ivs", &bssid[0], &bssid[1], &bssid[2], &bssid[3], &bssid[4], &bssid[5] );
+			getap( bssid );
 		}
 	}
 
@@ -179,6 +186,7 @@ int __cdecl main(int argc, char* argv[])
 				"PermanentAddr : %02X:%02X:%02X:%02X:%02X:%02X\n" 
 				"CurrentAddr : %02X:%02X:%02X:%02X:%02X:%02X\n"
 				"ConnectionName : %S\n"
+				"GUID : %S\n"
 				"FriendlyName : %S\n"
 				"MediumType : %s\n"
 				"PhysicalMediumType : %s\n\n"
@@ -188,10 +196,12 @@ int __cdecl main(int argc, char* argv[])
 				, AdapterInfo.CurrentAddr[0],AdapterInfo.CurrentAddr[1],AdapterInfo.CurrentAddr[2]
 				, AdapterInfo.CurrentAddr[3],AdapterInfo.CurrentAddr[4],AdapterInfo.CurrentAddr[5]
 				, AdapterInfo.ConnectionName
+				, AdapterInfo.Guid
 				, AdapterInfo.FriendlyName
 				, MediumName[AdapterInfo.MediumType]
 				, PhysicalMediumName[AdapterInfo.PhysicalMediumType]
 				);
+
 			++n80211;
 		}
 	}
@@ -224,6 +234,20 @@ int __cdecl main(int argc, char* argv[])
 	{
 		puts( "error input." );
 		return -1;
+	}
+
+	WCHAR szGuid[MAX_PATH];
+	WCHAR *beg = wcschr( AdapterInfo.Guid, '{' ) + 1;
+	WCHAR *end = wcschr( AdapterInfo.Guid, '}' );
+	wcsncpy( szGuid, beg, end - beg );
+	szGuid[end-beg] = 0;
+
+	GUID guidIntf;
+	// get the interface GUID
+	if (UuidFromStringW((RPC_WSTR)szGuid, &guidIntf) != RPC_S_OK)
+	{
+		puts( "guid got error." );
+		return 0;
 	}
 
 	global G;
@@ -298,10 +322,9 @@ int __cdecl main(int argc, char* argv[])
 		apinfo *aptmp = ap;
 		ap = ap->next;
 
-		if( SUCCESS == crack_wep_ptw( aptmp ) )
+		if( ap->crack_result )
 		{
-			puts( (const char*)aptmp->key );
-			_getch();
+			SetProfile( guidIntf, (char*)ap->essid, (char*)ap->key );
 		}
 		fclose( aptmp->ivs );
 		uniqueiv_wipe( aptmp->uiv_root );

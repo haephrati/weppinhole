@@ -61,7 +61,7 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="NmApi.lib Common.lib"
+				AdditionalDependencies="NmApi.lib Common.lib Wlanapi.lib rpcrt4.lib msxml6.lib"
 				LinkIncremental="2"
 				AdditionalLibraryDirectories=".\API;$(SolutionDir)Lib\$(ConfigurationName)"
 				GenerateDebugInformation="true"
@@ -186,6 +186,10 @@
 			</File>
 			<File
 				RelativePath=".\NMTesting.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\Profile.cpp"
 				>
 			</File>
 			<File
