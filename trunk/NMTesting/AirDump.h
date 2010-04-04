@@ -115,6 +115,6 @@ struct apinfo
 };
 
 extern apinfo *aplst;
-apinfo *getap( char bssid[6] );
+extern apinfo *getap( unsigned char bssid[6] );
 int crack_wep_ptw( apinfo *ap_cur );
 int dump_add_packet( global &G, unsigned char *h80211, int caplen );
