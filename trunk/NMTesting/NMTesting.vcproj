@@ -95,7 +95,7 @@
 			OutputDirectory="$(SolutionDir)$(ConfigurationName)"
 			IntermediateDirectory="$(ConfigurationName)"
 			ConfigurationType="1"
-			CharacterSet="1"
+			CharacterSet="2"
 			WholeProgramOptimization="1"
 			>
 			<Tool
@@ -136,7 +136,7 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="NmApi.lib Common.lib"
+				AdditionalDependencies="NmApi.lib Common.lib Wlanapi.lib rpcrt4.lib msxml6.lib"
 				LinkIncremental="1"
 				AdditionalLibraryDirectories=".\API;$(SolutionDir)Lib\$(ConfigurationName)"
 				GenerateDebugInformation="true"
