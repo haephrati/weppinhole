@@ -1,0 +1,83 @@
+[version]
+Signature   = "$Windows NT$"
+Class       = NetService
+ClassGUID   = {4D36E974-E325-11CE-BFC1-08002BE10318}
+Provider    = %Msft%
+DriverVer   = 06/27/2006,1.0.0099.0
+
+[Manufacturer]
+%Msft%=MSFT,NTx86,NTia64,NTamd64
+
+[MSFT.NTx86]
+%Nm3_Desc%=Install, MS_Netmon
+
+[MSFT.NTia64]
+%Nm3_Desc%=Install, MS_Netmon
+
+[MSFT.NTamd64]
+%Nm3_Desc%=Install, MS_Netmon
+
+;-------------------------------------------------------------------------
+; Installation Section
+;-------------------------------------------------------------------------
+[Install]
+AddReg=Inst_Ndi
+Characteristics=0x40000
+NetCfgInstanceId="{6E022F38-AB31-44c5-8206-2EB023EFF145}"
+
+
+;-------------------------------------------------------------------------
+; Ndi installation support
+;-------------------------------------------------------------------------
+[Inst_Ndi]
+HKR, Ndi,Service,,"nm3"
+HKR, Ndi,CoServices,0x00010000,"nm3"
+HKR, Ndi,HelpText,,%Nm3_HelpText%
+HKR, Ndi,FilterClass,,failover
+HKR, Ndi,FilterType,0x00010001,0x00000001
+HKR, Ndi,FilterRunType, 0x00010001, 0x00000002  ;OPTIONAL filter
+HKR, Ndi\Interfaces,UpperRange,,"noupper"
+HKR, Ndi\Interfaces,LowerRange,,"nolower"
+HKR, Ndi\Interfaces, FilterMediaTypes,,"ethernet,wan,tunnel,ppip"
+
+;-------------------------------------------------------------------------
+; Service installation support
+;-------------------------------------------------------------------------
+[Install.Services]
+AddService=nm3,,Nm3_Service_Inst
+
+[Nm3_Service_Inst]
+DisplayName     = %Nm3_Desc%
+ServiceType     = 1 ;SERVICE_KERNEL_DRIVER
+StartType       = 1 ;SERVICE_SYSTEM_START
+ErrorControl    = 1 ;SERVICE_ERROR_NORMAL
+ServiceBinary   = %12%\nm3.sys
+LoadOrderGroup  = NDIS
+Description     = %Nm3_Desc%
+AddReg          = Common.Params.reg
+
+[Install.Remove.Services]
+DelService=nm3,0x200
+
+[Common.Params.reg]
+
+HKR, FilterDriverParams\DriverParam,            ParamDesc,      , "Driverparam for nm3"
+HKR, FilterDriverParams\DriverParam,            default,        , "5"
+HKR, FilterDriverParams\DriverParam,            type,           , "int"
+
+HKR, FilterAdapterParams\AdapterParam,          ParamDesc,      , "Adapterparam for nm3"
+HKR, FilterAdapterParams\AdapterParam,          default,        , "10"
+HKR, FilterAdapterParams\AdapterParam,          type,           , "int"
+
+HKR, FilterInstanceParams\InstanceParam,        ParamDesc,      , "Instance param for lwf"
+HKR, FilterInstanceParams\InstanceParam,        default,        , "15"
+HKR, FilterInstanceParams\InstanceParam,        type,           , "int"
+
+[Strings]
+Msft = "Zerone"
+Nm3_Desc = "Zerone wifi capture drive"
+Nm3_HelpText = "Zerone wifi filter driver"
+
+
+
+
