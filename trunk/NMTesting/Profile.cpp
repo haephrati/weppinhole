@@ -17,7 +17,7 @@ using namespace std;
 wchar_t szProfileStringFmt[] = 
 	L"<?xml version=\"1.0\"?>\n"
 	L"	<WLANProfile xmlns=\"http://www.microsoft.com/networking/WLAN/profile/v1\">\n"
-	L"	<name>%S</name>\n"
+	L"	<name>%S-cr</name>\n"
 	L"	<SSIDConfig>\n"
 	L"		<SSID>\n"
 	L"			<name>%S</name>\n"
@@ -1034,32 +1034,28 @@ void SetProfile( GUID guidIntf, char *essid, char *pwd )
 }
 
 // get profile
-VOID 
-GetProfile(
-		   __in int argc, 
-		   __in_ecount(argc) LPWSTR argv[]
-)
+VOID GetProfile( GUID guidIntf, WCHAR *name )
 {
 	DWORD dwError = ERROR_SUCCESS;
 	HANDLE hClient = NULL;
 	PWSTR strXml;
-	GUID guidIntf;
+	// GUID guidIntf;
 
 	__try
 	{
-		if (argc != 3)
-		{
-			dwError = ERROR_INVALID_PARAMETER;
-			__leave;
-		}
+		//if (argc != 3)
+		//{
+		//	dwError = ERROR_INVALID_PARAMETER;
+		//	__leave;
+		//}
 
 		// get the interface GUID
-		if (UuidFromStringW((RPC_WSTR)argv[1], &guidIntf) != RPC_S_OK)
-		{
-			wcerr << L"Invalid GUID " << argv[1] << endl;
-			dwError = ERROR_INVALID_PARAMETER;
-			__leave;
-		}
+		//if (UuidFromStringW((RPC_WSTR)argv[1], &guidIntf) != RPC_S_OK)
+		//{
+		//	wcerr << L"Invalid GUID " << argv[1] << endl;
+		//	dwError = ERROR_INVALID_PARAMETER;
+		//	__leave;
+		//}
 
 		// open handle
 		if ((dwError = OpenHandleAndCheckVersion(
@@ -1073,7 +1069,7 @@ GetProfile(
 		if ((dwError = WlanGetProfile(
 			hClient, 
 			&guidIntf, 
-			argv[2],    // profile name
+			name,    // profile name
 			NULL,       // reserved
 			&strXml,    // XML string of the profile
 			NULL,       // not interested in the profile flags
@@ -1096,8 +1092,6 @@ GetProfile(
 				);
 		}
 	}
-
-	PrintErrorMsg(argv[0], dwError);
 }
 
 // delete profile
@@ -2577,7 +2571,7 @@ WLSAMPLE_COMMAND g_Commands[] = {
 						{
 							L"GetProfile",
 								L"gp",
-								GetProfile,
+								SetProfile,
 								L"Get the content of a saved profile.",
 								L"<interface GUID> <profile name>",
 								TRUE,

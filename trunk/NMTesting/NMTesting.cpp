@@ -133,7 +133,7 @@ void cls( HANDLE hConsole )
 }   
 
 extern void SetProfile( GUID guidIntf, char *essid, char *pwd );
-extern void GetProfile( int argc, LPWSTR argv[] );
+extern void GetProfile( GUID guidIntf, WCHAR *name );
 
 int __cdecl main(int argc, char* argv[])
 {
@@ -236,6 +236,8 @@ int __cdecl main(int argc, char* argv[])
 		return -1;
 	}
 
+	NmGetAdapter( myCaptureEngine, nChoice, &AdapterInfo );
+
 	WCHAR szGuid[MAX_PATH];
 	WCHAR *beg = wcschr( AdapterInfo.Guid, '{' ) + 1;
 	WCHAR *end = wcschr( AdapterInfo.Guid, '}' );
@@ -250,6 +252,8 @@ int __cdecl main(int argc, char* argv[])
 		return 0;
 	}
 
+	// GetProfile( guidIntf, L"Albert" );
+	// SetProfile( guidIntf, "Albert", "0123456789012" );
 	global G;
 	memset( &G, 0, sizeof(global) );
 	ret = NmConfigAdapter(myCaptureEngine, nChoice, myFrameIndication, (void*)&G );
@@ -279,8 +283,8 @@ int __cdecl main(int argc, char* argv[])
 			POS.X = 0;
 			POS.Y = 0;
 			SetConsoleCursorPosition( GetStdHandle(STD_OUTPUT_HANDLE), POS );
-			printf( "capture frame %ld\n", FrameCount );
-			printf( "%16s|%4s|%3s|%3s(M)|%6s|%6s|%6s|%8s|%s", "ESSID", "CHAN", "POW", "SPD", "PACKET", "MGMT", "DATA", "SECURITY", "BSSID" );
+			printf( "Capture frame : %ld\n", FrameCount );
+			printf( "%17s|%4s|%3s|%3s(M)|%6s|%6s|%6s|%8s", "ESSID", "CHAN", "POW", "SPD", "PACKET", "MGMT", "DATA", "SECURITY" );
 
 			POS.Y = 2;
 			apinfo * ap = aplst;
@@ -288,8 +292,8 @@ int __cdecl main(int argc, char* argv[])
 			{
 				if( ap->security & STD_WEP )
 				{
-					POS.Y += 2;
 					SetConsoleCursorPosition( GetStdHandle(STD_OUTPUT_HANDLE), POS );
+					puts("------------------------------------------------------------");
 
 					char szMac[32];
 					char szKeyHex[256];
@@ -301,11 +305,26 @@ int __cdecl main(int argc, char* argv[])
 						n += _snprintf( szKeyHex+n, sizeof(szKeyHex)-n, "%02X ", ap->key[i] );
 						szKeyAscii[i] = isprint( ap->key[i] )?ap->key[i]:'.';
 					}
-					szKeyAscii[13] = 0;
-					printf( "%16s %4d %3d %5dM %6d %6d %6d %8s \n%s %d/%d %s:%s",
+					szKeyAscii[ap->keylen] = 0;
+
+					printf( "[%-16s|%4d|%3d|%5dM|%6d|%6d|%6d|%8s]\n\t[MAC:%s] [%d/%d]\n\tCrack [HEX %s| ASC %s]",
 						ap->essid, ap->channel, ap->power, ap->max_speed, ap->pkt, ap->bcn, ap->nb_data, (ap->security&STD_WEP?"WEP":"OTHER"), 
 						szMac, ap->nb_ivs_clean, ap->nb_ivs_vague, szKeyHex, szKeyAscii );
+
+					if( ap->crack_result )
+					{
+						POS.Y += 1;
+						printf( "\n%s cracked key = %s profile %s", ap->essid, ap->key, ap->profile_state?"set":"not set" );
+						if( ap->profile_state == false )
+						{
+							SetProfile( guidIntf, (char*)ap->essid, (char*)ap->key );
+							ap->profile_state = true;
+						}
+					}
+
+					POS.Y += 4;
 				}
+
 				ap = ap->next;
 			}
 
@@ -322,10 +341,6 @@ int __cdecl main(int argc, char* argv[])
 		apinfo *aptmp = ap;
 		ap = ap->next;
 
-		if( ap->crack_result )
-		{
-			SetProfile( guidIntf, (char*)ap->essid, (char*)ap->key );
-		}
 		fclose( aptmp->ivs );
 		uniqueiv_wipe( aptmp->uiv_root );
 		DeleteCriticalSection( &aptmp->lock );

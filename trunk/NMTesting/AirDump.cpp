@@ -192,6 +192,7 @@ apinfo *getap( unsigned char bssid[6] )
 		ap->ssid_length = 0;
 		ap->preamble = 0;
 		ap->crack_result = false;
+		ap->profile_state = false;
 
 		ap->next = aplst;
 
@@ -520,6 +521,9 @@ int dump_add_packet( global &G, unsigned char *h80211, int caplen )
 	case  3: memcpy( bssid, h80211 + 10, 6 ); break;  //WDS -> Transmitter taken as BSSID
 	}
 
+	//if( memcmp( bssid, "\0xff\0xff\0xff\0xff\0xff\0xff", 6 ) == 0 )
+	//	return 0;
+
 	/* update our chained list of access points */
 	struct apinfo* ap_cur = getap( bssid );
 	if( ap_cur == NULL )
@@ -528,6 +532,9 @@ int dump_add_packet( global &G, unsigned char *h80211, int caplen )
 		return 0;
 	}
 	CCriticalLock lock( ap_cur->lock );
+
+	//if( ap_cur->security && (ap_cur->security & STD_WEP) == 0 )
+	//	return 0;
 
 	// 已经破解的则不再继续分析数据包。
 	if( ap_cur->crack_result )
@@ -644,7 +651,6 @@ skip_station:
 
 					ap_cur->essid_stored = 1;
 				}
-
 				for( i = 0; i < n; i++ )
 					if( ( ap_cur->essid[i] >   0 && ap_cur->essid[i] <  32 ) ||
 						( ap_cur->essid[i] > 126 && ap_cur->essid[i] < 160 ) )
@@ -1117,14 +1123,10 @@ skip_station:
 		}
 		ap_cur->nb_data++;
 
-		if( ap_cur->nb_ivs_vague && ap_cur->nb_ivs_vague%5000 == 0 )
+		if( ap_cur->crack_result == false && ap_cur->nb_ivs_vague%5000 == 0 )
 		{
 			int ret = crack_wep_ptw(ap_cur);
-			if( ret == FAILURE )
-			{
-				memset( &ap_cur->key, 0, sizeof(ap_cur->key) );
-			}
-			else if( ret == SUCCESS )
+			if( ret == SUCCESS )
 			{
 				ap_cur->crack_result = true;
 			}
