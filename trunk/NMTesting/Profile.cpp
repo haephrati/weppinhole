@@ -17,7 +17,7 @@ using namespace std;
 wchar_t szProfileStringFmt[] = 
 	L"<?xml version=\"1.0\"?>\n"
 	L"	<WLANProfile xmlns=\"http://www.microsoft.com/networking/WLAN/profile/v1\">\n"
-	L"	<name>%S-cr</name>\n"
+	L"	<name>%S</name>\n"
 	L"	<SSIDConfig>\n"
 	L"		<SSID>\n"
 	L"			<name>%S</name>\n"
