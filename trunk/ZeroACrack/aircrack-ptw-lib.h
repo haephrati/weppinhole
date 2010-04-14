@@ -1,4 +1,7 @@
-#include <stdint.h>
+typedef unsigned char	u_char;
+typedef unsigned char	uint8_t;
+typedef unsigned short	uint16_t;
+typedef unsigned int	uint32_t;
 
 // Number of bytes we use for our table of seen IVs, this is (2^24)/8
 #define PTW_IVTABLELEN 2097152

@@ -61,7 +61,7 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="NmApi.lib Common.lib Wlanapi.lib"
+				AdditionalDependencies="NmApi.lib Common.lib Wlanapi.lib  rpcrt4.lib"
 				LinkIncremental="2"
 				AdditionalLibraryDirectories=".\API;$(SolutionDir)Lib\$(ConfigurationName)"
 				GenerateDebugInformation="true"
@@ -136,7 +136,7 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="NmApi.lib Common.lib Wlanapi.lib"
+				AdditionalDependencies="NmApi.lib Common.lib Wlanapi.lib  rpcrt4.lib"
 				LinkIncremental="1"
 				AdditionalLibraryDirectories=".\API;$(SolutionDir)Lib\$(ConfigurationName)"
 				GenerateDebugInformation="true"
@@ -177,15 +177,23 @@
 			UniqueIdentifier="{4FC737F1-C7A5-4376-A066-2A32D752A2FF}"
 			>
 			<File
-				RelativePath=".\aircrack-ptw-lib.c"
+				RelativePath=".\aircrack-ptw-lib.cpp"
 				>
 			</File>
 			<File
-				RelativePath=".\aircrack-ptw.c"
+				RelativePath=".\aircrack-ptw.cpp"
 				>
 			</File>
 			<File
-				RelativePath=".\attacksim.c"
+				RelativePath=".\attacksim.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\profile.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\zeroacrack.cpp"
 				>
 			</File>
 		</Filter>
@@ -196,6 +204,10 @@
 			>
 			<File
 				RelativePath=".\aircrack-ptw-lib.h"
+				>
+			</File>
+			<File
+				RelativePath=".\def.h"
 				>
 			</File>
 		</Filter>

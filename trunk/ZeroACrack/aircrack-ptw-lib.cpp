@@ -1,6 +1,7 @@
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <malloc.h>
 #include "aircrack-ptw-lib.h"
 
 
@@ -344,7 +345,7 @@ int PTW_computeKey(PTW_attackstate * state, uint8_t * keybuf, int keylen, int te
 	twostrong = (testlimit/10)*1;
 	simple = testlimit - onestrong - twostrong;
 
-	PTW_tableentry (*table)[n] = alloca(sizeof(PTW_tableentry) * n * keylen);
+	PTW_tableentry (*table)[n] = (PTW_tableentry (*)[n])alloca(sizeof(PTW_tableentry) * n * keylen);
 	if (table == NULL) {
 		printf("could not allocate memory\n");
 		exit(-1);
@@ -357,7 +358,7 @@ int PTW_computeKey(PTW_attackstate * state, uint8_t * keybuf, int keylen, int te
 		strongbytes[i] = 0;
         }
 
-	sorthelper (* sh)[n-1] = alloca(sizeof(sorthelper) * (n-1) * keylen);
+	sorthelper (* sh)[n-1] = (sorthelper (*)[n-1])alloca(sizeof(sorthelper) * (n-1) * keylen);
 	if (sh == NULL) {
 		printf("could not allocate memory\n");
 		exit(-1);
@@ -438,11 +439,11 @@ int PTW_addsession(PTW_attackstate * state, uint8_t * iv, uint8_t * keystream) {
 PTW_attackstate * PTW_newattackstate() {
 	int i,k;
 	PTW_attackstate * state = NULL;
-	state = malloc(sizeof(PTW_attackstate));
+	state = (PTW_attackstate *)malloc(sizeof(PTW_attackstate));
 	if (state == NULL) {
 		return NULL;
 	}
-	bzero(state, sizeof(PTW_attackstate));
+	memset(state, 0, sizeof(PTW_attackstate));
 	for (i = 0; i < PTW_KEYHSBYTES; i++) {
                 for (k = 0; k < n; k++) {
                         state->table[i][k].b = k;
