@@ -1,0 +1,20 @@
+#define SERVERLOG _T("ServerLog")
+#include "defines.h"
+#include "commonspp.h"
+#include "critical_lock.h"
+#include "dynamic_buffer.h"
+#include "dispatcher.h"
+#include "excel.h"
+#include "exception_report.h"
+#include "logger.h"
+#include "logger_adapter.h"
+#include "netstream.h"
+#include "cpu.h"
+#include "utility.h"
+#include "bufstream.h"
+#ifdef USING_LOKI_LIBRARY
+	#include "timer_manager.h"
+#endif
+#include "sync_object.h"
+#include "vector_map.h"
+#include "vector_set.h"
