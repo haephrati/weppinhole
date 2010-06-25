@@ -33,7 +33,7 @@ ULONG uFrameCount = 0;
 
 //////////////////////////////////////////////////////////////////////////
 extern void SetProfile( GUID guidIntf, char *essid, char *pwd );
-extern void dumpacket( char *packet, int len );
+extern void dumpacket( unsigned char *packet, int len );
 extern void freenetwork( network* network_ptr );
 //////////////////////////////////////////////////////////////////////////
 extern network * networktable;
@@ -55,7 +55,7 @@ void __stdcall myFrameIndication(HANDLE hCapEng, ULONG AdpIdx, PVOID pContext, H
 	header *phdr = (header*)szBuffer;
 
 	short len =phdr->length;
-	char *h80211 = (char*)szBuffer + len;
+	unsigned char *h80211 = (unsigned char*)szBuffer + len;
 
 	//printf( "version %d\n", phdr->version );
 	//printf( "length %d\n", len );
@@ -114,18 +114,20 @@ int main( int argc, char **argv )
 
 	int n80211 = 0;
 	int nMenu[128];
+	puts("Select NIC.");
 	for( ULONG i = 0; i < adapterCount; ++i )
 	{
 		NmGetAdapter( myCaptureEngine, i, &AdapterInfo );
 		if( AdapterInfo.MediumType == NdisMediumNative802_11 && AdapterInfo.PhysicalMediumType == NdisPhysicalMediumNative802_11 )
 		{
 			printf( 
-				"AdapterIndex :%d\n"
-				"PermanentAddr : %02X:%02X:%02X:%02X:%02X:%02X\n" 
-				"CurrentAddr : %02X:%02X:%02X:%02X:%02X:%02X\n"
-				"ConnectionName : %S\n"
-				"GUID : %S\n"
-				//"FriendlyName : %S\n"
+				"\t------------------------------------------------\n"
+				"\tAdapterIndex :%d\n"
+				"\tPermanentAddr : %02X:%02X:%02X:%02X:%02X:%02X\n" 
+				"\tCurrentAddr : %02X:%02X:%02X:%02X:%02X:%02X\n"
+				//"ConnectionName : %S\n"
+				"\tGUID : %S\n"
+				"\tFriendlyName : %S\n"
 				//"MediumType : %s\n"
 				//"PhysicalMediumType : %s\n\n"
 				, n80211
@@ -133,9 +135,9 @@ int main( int argc, char **argv )
 				, AdapterInfo.PermanentAddr[3],AdapterInfo.PermanentAddr[4],AdapterInfo.PermanentAddr[5]
 				, AdapterInfo.CurrentAddr[0],AdapterInfo.CurrentAddr[1],AdapterInfo.CurrentAddr[2]
 				, AdapterInfo.CurrentAddr[3],AdapterInfo.CurrentAddr[4],AdapterInfo.CurrentAddr[5]
-				, AdapterInfo.ConnectionName
+				//, AdapterInfo.ConnectionName
 				, AdapterInfo.Guid
-				//, AdapterInfo.FriendlyName
+				, AdapterInfo.FriendlyName
 				//, MediumName[AdapterInfo.MediumType]
 				//, PhysicalMediumName[AdapterInfo.PhysicalMediumType]
 			);
@@ -174,7 +176,7 @@ int main( int argc, char **argv )
 		return -1;
 	}
 
-	nChoice = nMenu[n80211];
+	nChoice = nMenu[nChoice];
 	NmGetAdapter( myCaptureEngine, nChoice, &AdapterInfo );
 
 	WCHAR szGuid[MAX_PATH];
@@ -230,33 +232,33 @@ int main( int argc, char **argv )
 					SetConsoleCursorPosition( GetStdHandle(STD_OUTPUT_HANDLE), POS );
 					puts("------------------------------------------------------------");
 
-					char szMac[32];
-					char szKeyHex[256];
-					char szKeyAscii[64];
+					char szMac[32] = {0};
+					char szKeyHex[256] = {0};
+					char szKeyAscii[64] = {0};
 					_snprintf( szMac, sizeof(szMac), "%02x-%02x-%02x %02x-%02x-%02x", ap->bssid[0], ap->bssid[1], ap->bssid[2], ap->bssid[3], ap->bssid[4], ap->bssid[5] );
 					int n = 0;
 					for( int i = 0; ap->key[i] != 0 && i < 13; ++i )
 					{
-						n += _snprintf( szKeyHex+n, sizeof(szKeyHex)-n, "%02X ", ap->key[i] );
+						n += _snprintf( szKeyHex+n, sizeof(szKeyHex)-n, "%02X ", (uint8_t)ap->key[i] );
 						szKeyAscii[i] = isprint( ap->key[i] )?ap->key[i]:'.';
 					}
 
-					printf( "[%-16s|%d]\n\t[MAC:%s] [%d/%d]\n\tCrack [HEX %s| ASC %s]",
-						ap->essid, ap->bcn, (ap->security&STD_WEP?"WEP":"OTHER"), 
-						szMac, szKeyHex, szKeyAscii );
+					printf( "[%-16s:%s [MAC:%s] Capture data count(%d)] \n\tCrack [HEX %s| ASC %s]",
+						ap->essid, (ap->security&STD_WEP?"WEP":"OTHER"), 
+						szMac, ap->bcn, szKeyHex, szKeyAscii );
 
 					if( ap->rcrack )
 					{
 						POS.Y += 1;
-						printf( "\n%s cracked key = %s profile %s", ap->essid, ap->key, ap->sprofile?"set":"not set" );
 						if( ap->sprofile == false )
 						{
 							SetProfile( guidIntf, (char*)ap->essid, (char*)ap->key );
 							ap->sprofile = true;
 						}
+						printf( "\n%s cracked key = %s profile %s", ap->essid, ap->key, ap->sprofile?"set":"not set" );
 					}
 
-					POS.Y += 4;
+					POS.Y += 3;
 				}
 
 				ap = ap->next;
